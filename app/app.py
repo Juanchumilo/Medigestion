@@ -9,6 +9,18 @@ app=Flask(__name__)
 def index():
     return render_template('index.html')
 
+@app.route('/ingresar')
+def ingresar():
+    return render_template('ingresar.html')
+
+@app.route('/registrarse')
+def registrarse():
+    return render_template('registrarse.html')
+
+@app.route('/forgotpassword')
+def forgotpassword():
+    return render_template('forgotpassword.html')
+
 #Paciente
 #@app.route('/Paciente/<int:id_Paciente>')
 #def Paciente(id_Paciente):
