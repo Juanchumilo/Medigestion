@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+        <meta charset="UTF-8">
+        <title>Paciente - MediGestión</title>
+        <link rel="stylesheet" href="Styles/paciente_estilo.css">
+    </head>
+
+    
+    <body>
+        <!--Barra de navegación -->
+        <div>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Inicio</a></li>
+                    <li><a href="ingresar.html">Ingresar</a></li>
+                    <li><a href="registrarse.html">Registrarse</a></li>
+                </ul>
+            </nav>
+        </div>
+
+
+        <!--Menu de Usuario-->
+        <header>
+            <div class="logo-usuario">
+                <a href="index.html"><img src="{{ url_for('static', filename='Imagenes/medigestion logo_sf.png') }}" alt="Logo de MediGestión"></a>
+                <div class="usuario-menu">
+                    <span>Usuario: {% block usuario %}{% endblock %}</span>
+                    <select>
+                        <option>Editar Mis Datos</option>
+                        <option>Ayuda</option>
+                        <option>Cerrar Sesión</option>
+                    </select>
+                </div>
+            </div>
+        </header>
+
+
+        <!--Horarios Médicos-->
+        <section class="horario-medicos">
+            <h2>Horario Médicos</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Hora Ingreso</th>
+                        <th>Hora Salida</th>
+                        <th>Horario</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Médico1</td>
+                        <td>5 a.m</td>
+                        <td>3 p.m</td>
+                        <td>Lun-Vier</td>
+                    </tr>
+                    <tr>
+                        <td>Médico2</td>
+                        <td>3 p.m</td>
+                        <td>1 a.m</td>
+                        <td>Mier-Dom</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+
+        <!--Sección Gestion Citas-->
+        <section class="reportes-citas">
+            <h2>Gestionar Citas</h2>
+            <form>
+                <label for="codigo-cita">Código de la Cita</label>
+                <input type="text" id="codigo-cita" name="codigo-cita">
+
+                <label for="hora-cita">Hora de la Cita</label>
+                <input type="number" id="hora-cita" name="hora-cita" min="0" max="23">
+
+                <label for="fecha-cita">Fecha de la Cita</label>
+                <input type="date" id="fecha-cita" name="fecha-cita">
+
+                <label for="nombre-paciente">Apellido del Paciente</label>
+                <input type="text" id="nombre-paciente" name="nombre-paciente">
+
+                <label for="nombre-paciente">Nombre del Paciente</label>
+                <input type="text" id="nombre-paciente" name="nombre-paciente">
+
+                <label for="telefono-paciente">Teléfono Celular</label>
+                <input type="text" id="telefono-paciente" name="telefono-paciente">
+
+                <label for="motivo-cita">Motivo de la Cita</label>
+                <select id="motivo-cita" name="motivo-cita">
+                    <option value="Motivo1">Motivo1</option>
+                    <option value="Motivo2">Motivo2</option>
+                    <option value="Motivo3">Motivo3</option>
+                    <option value="Motivo4">Motivo4</option>
+                    <option value="Motivo5">Motivo5</option>
+                    <option value="Motivo6">Motivo6</option>
+                </select>
+                <label>
+                    <input type="checkbox" name="otro-motivo"> Otro
+                    <input type="text" name="motivo-otro" id="ch-txt">
+                </label>
+
+                <div class="botones-citas">
+                    <button type="button">Buscar</button>
+                    <button type="button">Crear</button>
+                    <button type="button">Editar</button>
+                </div>
+            </form>
+        </section>
+
+
+        <!--Sección Detalles de la Cita-->
+        <section class="detalles-cita">
+            <h2>Detalles de su Cita</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Estado</th>
+                        <th>Hora Cita</th>
+                        <th>Sala Cita</th>
+                        <th>Fecha</th>
+                        <th>Médico Encargado</th>
+                        <th>Motivo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Agendada</td>
+                        <td>7 a.m</td>
+                        <td>Sala 2</td>
+                        <td>XX/XX/XXXX</td>
+                        <td>Médico1</td>
+                        <td>Motivo1</td>
+                    </tr>
+                    <tr>
+                        <td>Cancelada</td>
+                        <td>9 a.m</td>
+                        <td>Sala 2</td>
+                        <td>XX/XX/XXXX</td>
+                        <td>Médico1</td>
+                        <td>Motivo2</td>
+                    </tr>
+                    <tr>
+                        <td>Completada</td>
+                        <td>5 p.m</td>
+                        <td>Sala 3</td>
+                        <td>XX/XX/XXXX</td>
+                        <td>Médico2</td>
+                        <td>Motivo3</td>
+                    </tr>
+                    <tr>
+                        <td>Reasignada</td>
+                        <td>2 p.m</td>
+                        <td>Sala 1</td>
+                        <td>XX/XX/XXXX</td>
+                        <td>Médico2</td>
+                        <td>Motivo4</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+    </body>
+
+
+    <!--Pie de página-->
+    <footer>
+        <p>&copy; 2024 MediGestión. Todos los derechos reservados.</p>
+        <p>Juan Camilo Bernal</p>
+    </footer>
+</html>

@@ -1,0 +1,261 @@
+/* Reseteo de estilos */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Constantia, serif;
+}
+/* Barra de navegacion */
+nav:first-of-type {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #ffffff;
+    padding: 10px 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+}
+
+nav ul {
+    list-style: none;
+    display: flex;
+    gap: 15px;
+}
+nav ul li a {
+    position: relative;
+    text-decoration: none;
+    font-weight: bold;
+    color: #007bff;
+    padding: 5px 10px;
+    border-radius: 5px;
+    transition: color 0.3s ease;
+}
+
+nav ul li a::before,
+nav ul li a::after {
+    content: "";
+    position: absolute;
+    height: 2px;
+    width: 0;
+    background-color: #007bff;
+    transition: 0.3s ease;
+}
+
+nav ul li a::before {
+    bottom: 0;
+    left: 0;
+}
+
+nav ul li a::after {
+    top: 0;
+    right: 0;
+}
+
+nav ul li a:hover::before,
+nav ul li a:hover::after {
+    width: 100%;
+}
+
+nav ul li a:hover {
+    color: #0056b3;
+}
+table a {
+    position: relative;
+    text-decoration: none;
+    font-weight: bold;
+    color: #ffffff;
+    padding: 5px 10px;
+    border-radius: 5px;
+    transition: color 0.3s ease;
+}
+
+
+/* Body */
+body {
+    background-color: #f4f6f8;
+    color: #333;
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px 20px;
+}
+
+/* Menu de usuario */
+.logo-usuario {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #ffffff;
+    padding: 10px 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 900px;
+    margin-bottom: 30px;
+}
+
+.logo-usuario img {
+    width: 120px;
+    height: 85px;
+}
+
+.usuario-menu {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.usuario-menu span {
+    padding: 5px;
+    font-weight: bold;
+}
+
+.usuario-menu select {
+    padding: 5px 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    outline: none;
+    cursor: pointer;
+}
+
+/* Section */
+section {
+    width: 100%;
+    max-width: 900px;
+    background-color: #ffffff;
+    padding: 25px 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+}
+section h2 {
+    font-size: 1.8rem;
+    margin-bottom: 20px;
+    color: #222;
+    text-align: center;
+}
+div ul {
+    background-color: #ffffff;
+    padding: 10px 10px;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+div .usuario-menu{
+    background-color: #ffffff;
+    padding: 25px 30px;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    margin-left: 10px;
+}
+
+/* Tablas */
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+table th, table td {
+    border: 1px solid #ccc;
+    padding: 14px;
+    text-align: center;
+}
+
+#th-h { /* Ancho específico para la columna Hora (para ver en linea completa la hora) */
+    width: 80px;
+}
+
+table th {
+    background-color: #007bff;
+    color: #fff;
+    font-weight: bold;
+}
+
+table tbody tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+/* Formularios */
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+form label {
+    font-weight: bold;
+}
+
+form input[type="text"],
+form input[type="number"],
+form input[type="date"],
+form select {
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 1rem;
+    outline: none;
+    transition: border 0.3s;
+}
+form input:focus,
+form select:focus {
+    border-color: #007bff;
+}
+
+/* Botones Principales */
+
+button {
+    flex: 1;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 8px;
+    background-color: #28a745;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s, transform 0.4s;
+}
+
+button:hover {
+    background-color: #218838;
+    transform: translateY(-3px);
+}
+
+/* Footer */
+
+footer {
+    text-align: center;
+    margin-top: 50px;
+    padding: 20px 0;
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 -2px 5px rgba(0,0,0,0.05);
+    color: #666;
+    font-size: 0.9rem;
+    width: 100%;
+    max-width: 900px;
+}
+
+/* Aplica a toda la página */
+::-webkit-scrollbar {
+  width: 13px; /* grosor de la barra */
+}
+
+/* Fondo del scroll (el carril) */
+::-webkit-scrollbar-track {
+  background: #f1f1f1; 
+  border-radius: 10px;
+}
+
+/* Parte que se mueve (el pulgar) */
+::-webkit-scrollbar-thumb {
+  background: #212d3a; 
+  border-radius: 10px;
+}
+
+/* Efecto al pasar el mouse por encima del pulgar */
+::-webkit-scrollbar-thumb:hover {
+  background: #0056b3;
+}

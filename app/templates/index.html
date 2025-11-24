@@ -2,7 +2,7 @@
 <html lang="es">
     <head>
         <meta charset="UTF-8">
-        <link rel="stylesheet" href="Styles/index_estilo.css">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/index_estilo.css') }}">
         <title>MediGestión</title>
     </head>
 
@@ -11,7 +11,7 @@
         <!--Barra de navegación-->
         <div class="navbar">
             
-                <a href="index.html"><img id="imglogo" src="Imagenes/medigestion logo_sf.png" alt="Logo de MediGestión" title="Logo de MediGestión"></a>
+                <a href="index.html"><img id="imglogo" src="{{ url_for('static', filename='Imagenes/medigestion logo_sf.png') }}" alt="Logo de MediGestión" title="Logo de MediGestión"></a>
                 <ul>
                     <li><a href="index.html">Inicio</a></li>
                     <li><a href="ingresar.html">Ingresar</a></li>
@@ -34,7 +34,7 @@
         <button><a href="registrarse.html">Registrate para agendar todas tus citas médicas</a></button>
         <button><a href="ingresar.html">Inicia sesión si ya tienes una cuenta</a></button>
         <h3>MediGestión es mejor porque optimiza el tiempo, centraliza la información médica y mejora la atención al paciente con una gestión moderna y eficiente.</h3>
-        <img id="imagenmedigestion" src="Imagenes/medigestion logo_sf.png" alt="Logo de MediGestión" title="Logo de MediGestión">
+        <img id="imagenmedigestion" src="{{ url_for('static', filename='Imagenes/medigestion logo_sf.png') }}" alt="Logo de MediGestión" title="Logo de MediGestión">
         </div>
     </body>
 
