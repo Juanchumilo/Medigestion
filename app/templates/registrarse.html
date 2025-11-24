@@ -3,18 +3,18 @@
     <head>
         <meta charset="UTF-8">
         <title>Registrarse - MediGestión</title>
-        <link rel="stylesheet" href="Styles/registrarse_estilo.css">
+        <link rel="stylesheet" href="{{url_for('static',filename='css/registrarse_estilo.css')}}">
     </head>
 
     
     <body>
         <!--Barra de Navegacion-->
         <div class="logo-nav">
-            <a href="index.html"><img src="Imagenes/medigestion logo_sf.png" alt="Logo de MediGestión" title="Logo de MediGestión" id="medilogo"></a>
+            <a href="{{url_for('index')}}"><img src="{{url_for('static',filename='img/medigestion logo_sf.png')}}" alt="Logo de MediGestión" title="Logo de MediGestión" id="medilogo"></a>
                 <ul>
-                    <li><a href="index.html">Inicio</a></li>
-                    <li><a href="ingresar.html">Ingresar</a></li>
-                    <li><a href="registrarse.html">Registrarse</a></li>
+                    <li><a href="{{url_for('index')}}">Inicio</a></li>
+                    <li><a href="{{url_for('ingresar')}}">Ingresar</a></li>
+                    <li><a href="{{url_for('registrarse')}}">Registrarse</a></li>
                 </ul>
         </div>
 

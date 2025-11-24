@@ -11,9 +11,9 @@
         <!--Barra de navegación-->
         <div class="navbar">
             
-                <a href="{{url_for('/')}}"><img id="imglogo" src="{{ url_for('static', filename='Imagenes/medigestion logo_sf.png') }}" alt="Logo de MediGestión" title="Logo de MediGestión"></a>
+                <a href="{{url_for('index')}}"><img id="imglogo" src="{{ url_for('static', filename='img/medigestion logo_sf.png') }}" alt="Logo de MediGestión" title="Logo de MediGestión"></a>
                 <ul>
-                    <li><a href="{{url_for('/')}}">Inicio</a></li>
+                    <li><a href="{{url_for('index')}}">Inicio</a></li>
                     <li><a href="{{url_for('ingresar')}}">Ingresar</a></li>
                     <li><a href="{{url_for('registrarse')}}">Registrarse</a></li>
                 </ul>
@@ -34,7 +34,7 @@
         <button><a href="{{url_for('registrarse')}}">Registrate para agendar todas tus citas médicas</a></button>
         <button><a href="{{url_for('ingresar')}}">Inicia sesión si ya tienes una cuenta</a></button>
         <h3>MediGestión es mejor porque optimiza el tiempo, centraliza la información médica y mejora la atención al paciente con una gestión moderna y eficiente.</h3>
-        <img id="imagenmedigestion" src="{{ url_for('static', filename='Imagenes/medigestion logo_sf.png') }}" alt="Logo de MediGestión" title="Logo de MediGestión">
+        <img id="imagenmedigestion" src="{{ url_for('static', filename='img/medigestion logo_sf.png') }}" alt="Logo de MediGestión" title="Logo de MediGestión">
         </div>
     </body>
 

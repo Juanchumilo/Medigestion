@@ -1,7 +1,4 @@
-from flask import Flask, render_template, request, redirect
-from db import get_connection
-import models
-
+from flask import Flask, render_template
 app=Flask(__name__)
 
 #Index

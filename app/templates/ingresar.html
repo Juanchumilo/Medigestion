@@ -10,11 +10,11 @@
     <body>
         <!--Barra de navegación-->
         <div class="navbar">
-            <a href="{{url_for('/')}}"><img src="url_for('static',filename='Imagenes/medigestion logo_sf.png')" alt="Logo de MediGestión" title="Logo de MediGestión"></a>
+            <a href="{{url_for('index')}}"><img src="{{url_for('static',filename='img/medigestion logo_sf.png')}}" alt="Logo de MediGestión" title="Logo de MediGestión"></a>
             <ul>
-                    <li><a href="{{url_for('/')}}">Inicio</a></li>
-                    <li><a href="{{url_for('/ingresar')}}">Ingresar</a></li>
-                    <li><a href="{{url_for('/registrarse')}}">Registrarse</a></li>
+                    <li><a href="{{url_for('index')}}">Inicio</a></li>
+                    <li><a href="{{url_for('ingresar')}}">Ingresar</a></li>
+                    <li><a href="{{url_for('registrarse')}}">Registrarse</a></li>
             </ul>
         </div>
 
@@ -35,8 +35,8 @@
 
     <!--Opciones adicionales-->
     <h3>¿No tienes una cuenta?</h3>
-    <button id="btn-rgs"><a href="{{url_for('/registrarse')}}">Registrarse</a></button>
-    <button id="btn-fgp"><a href="{{url_for('/forgotpassword')}}">Olvidé mi contraseña</a></button>
+    <button id="btn-rgs"><a href="{{url_for('registrarse')}}">Registrarse</a></button>
+    <button id="btn-fgp"><a href="{{url_for('forgotpassword')}}">Olvidé mi contraseña</a></button>
     
 
     <!--Pie de Pagina-->
