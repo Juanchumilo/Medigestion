@@ -1,17 +1,8 @@
-from flask import Flask,render_template,request
-import pymysql
+from flask import Flask, render_template, request, redirect
+from db import get_connection
+import models
 
 app=Flask(__name__)
-
-#Configuracion de Conexion
-connection=pymysql.connect(
-    host='localhost',
-    user='root',
-    password='2207Chumilo,',
-    database='DB_MEDIGESTION',
-    port=3306,
-    cursorclass=pymysql.cursors.DictCursor
-)
 
 #Index
 @app.route('/')
@@ -31,4 +22,4 @@ def page_not_found(e):
 
 
 if __name__=='__main__':
-    app.run(debug=True,port=5001)
+    app.run(debug=True)

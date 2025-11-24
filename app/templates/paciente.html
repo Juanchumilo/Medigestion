@@ -12,9 +12,9 @@
         <div>
             <nav>
                 <ul>
-                    <li><a href="index.html">Inicio</a></li>
-                    <li><a href="ingresar.html">Ingresar</a></li>
-                    <li><a href="registrarse.html">Registrarse</a></li>
+                    <li><a href="{{url_for('/')}}">Inicio</a></li>
+                    <li><a href="{{url_for('ingresar')}}">Ingresar</a></li>
+                    <li><a href="{{url_for('registrarse')}}">Registrarse</a></li>
                 </ul>
             </nav>
         </div>
@@ -23,7 +23,7 @@
         <!--Menu de Usuario-->
         <header>
             <div class="logo-usuario">
-                <a href="index.html"><img src="{{ url_for('static', filename='Imagenes/medigestion logo_sf.png') }}" alt="Logo de MediGestión"></a>
+                <a href="{{url_for('/')}}"><img src="{{ url_for('static', filename='Imagenes/medigestion logo_sf.png') }}" alt="Logo de MediGestión"></a>
                 <div class="usuario-menu">
                     <span>Usuario: {% block usuario %}{% endblock %}</span>
                     <select>
