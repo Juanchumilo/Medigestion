@@ -47,6 +47,7 @@ def ingresar():
         # Buscar si es medico
         sql = "SELECT * FROM medicos WHERE email=%s"
         cursor.execute(sql, (correo,))
+        usuario = cursor.fetchone()
 
         if usuario:
             hashed_password = usuario['password']  
@@ -64,9 +65,10 @@ def ingresar():
                 return redirect(f"/medico/{usuario['id']}")
         
         # Buscar si es admin
-        sql = "SELECT * FROM admin WHERE email=%s"
+        sql = "SELECT * FROM admintb WHERE email=%s"
         cursor.execute(sql, (correo,))
-
+        usuario = cursor.fetchone()
+        
         if usuario:
             hashed_password = usuario['password']  
 
