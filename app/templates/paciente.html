@@ -12,7 +12,7 @@
         <div>
             <nav>
                 <ul>
-                    <li><a href="{{url_for('/')}}">Inicio</a></li>
+                    <li><a href="{{url_for('index')}}">Inicio</a></li>
                     <li><a href="{{url_for('ingresar')}}">Ingresar</a></li>
                     <li><a href="{{url_for('registrarse')}}">Registrarse</a></li>
                 </ul>
@@ -23,9 +23,9 @@
         <!--Menu de Usuario-->
         <header>
             <div class="logo-usuario">
-                <a href="{{url_for('/')}}"><img src="{{ url_for('static', filename='Imagenes/medigestion logo_sf.png') }}" alt="Logo de MediGestión"></a>
+                <a href="{{url_for('index')}}"><img src="{{ url_for('static', filename='img/medigestion logo_sf.png') }}" alt="Logo de MediGestión"></a>
                 <div class="usuario-menu">
-                    <span>Usuario: {% block usuario %}{% endblock %}</span>
+                    <span>Usuario: {{session['usuario']['nombre']}} {{session['usuario']['apellido']}}</span>
                     <select>
                         <option>Editar Mis Datos</option>
                         <option>Ayuda</option>
