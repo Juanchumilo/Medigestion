@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+        <meta charset="UTF-8">
+        <title>Admin - MediGestión</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_estilo.css') }}">
+    </head>
+
+    
+    <body>
+        <!--Barra de navegación -->
+        <div>
+            <nav>
+                <ul>
+                    <li><a href="{{url_for('index')}}">Inicio</a></li>
+                    <li><a href="{{url_for('ingresar')}}">Ingresar</a></li>
+                    <li><a href="{{url_for('registrarse')}}">Registrarse</a></li>
+                </ul>
+            </nav>
+        </div>
+
+
+        <!--Menu de Usuario-->
+        <header>
+            <div class="logo-usuario">
+                <a href="{{url_for('index')}}"><img src="{{ url_for('static', filename='img/medigestion logo_sf.png') }}" alt="Logo de MediGestión"></a>
+                <div class="usuario-menu">
+                    <span>Usuario: {{session['usuario']['nombre']}} {{session['usuario']['apellido']}}</span>
+                    <select onchange="location = this.value;">
+                        <option value="">Opciones</option>
+                        <option value="/editar_datos/admin/{{session['usuario']['id']}}">Editar mis datos</option>
+                        <option value="/atencion_cliente">Atencion al Cliente</option>
+                        <option value="{{ url_for('logout') }}">Cerrar sesión</option>
+                    </select>
+                </div>
+            </div>
+        </header>
+
+
+        <!--Gestión de Usuarios-->
+        <section>
+            <div class="gestion-usuarios">
+                <h2>Gestión de Usuarios</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Rol</th>
+                            <th>Edad</th>
+                            <th>Correo</th>
+                            <th>Editar</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Usuario1</td>
+                            <td>Paciente</td>
+                            <td>26</td>
+                            <td>xxxxx@gmail.com</td>
+                            <td><button><a href="gestion_usuarios.html">Gestionar</a>></button></td>
+                        </tr>
+                        <tr>
+                            <td>Usuario2</td>
+                            <td>Médico</td>
+                            <td>35</td>
+                            <td>xxxxx@gmail.com</td>
+                            <td><button><a href="gestion_usuarios.html">Gestionar</a>></button></td>
+                        </tr>
+                        <tr>
+                            <td>Usuario3</td>
+                            <td>Médico</td>
+                            <td>32</td>
+                            <td>xxxxx@gmail.com</td>
+                            <td><button><a href="gestion_usuarios.html">Gestionar</a>></button></td>
+                        </tr>
+                        <tr>
+                            <td>Usuario4</td>
+                            <td>Paciente</td>
+                            <td>54</td>
+                            <td>xxxxx@gmail.com</td>
+                            <td><button><a href="gestion_usuarios.html">Gestionar</a>></button></td>
+                        </tr>
+                    </tbody>
+                </table>
+        </section>
+
+
+    <!--Horarios Médicos-->
+    <section class="horario-medicos">
+        <h2>Horario Médicos</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Hora Ingreso</th>
+                    <th>Hora Salida</th>
+                    <th>Horario</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Médico1</td>
+                    <td>5 a.m</td>
+                    <td>3 p.m</td>
+                    <td>Lun-Vier</td>
+                </tr>
+                <tr>
+                    <td>Médico2</td>
+                    <td>3 p.m</td>
+                    <td>1 a.m</td>
+                    <td>Mier-Dom</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+
+        <!--Gestionar Citas-->
+        <section>
+            <h2>Gestionar Citas</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nombre Paciente</th>
+                        <th>Estado</th>
+                        <th id="th-h">Hora</th>
+                        <th>Consultorio</th>
+                        <th>Fecha</th>
+                        <th>Medico a cargo</th>
+                        <th>Motivo de la Cita</th>
+                        <th>Editar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Paciente1</td>
+                        <td>Completada</td>
+                        <td>10 a.m</td>
+                        <td>101</td>
+                        <td>01/01/2025</td>
+                        <td>Médico1</td>
+                        <td>Consulta General</td>
+                        <td><button><a href="gestionar_cita.html">Configurar</a></button></td>
+                    </tr>
+                    <tr>
+                        <td>Paciente2</td>
+                        <td>Cancelada</td>
+                        <td>2 p.m</td>
+                        <td>102</td>
+                        <td>02/01/2025</td>
+                        <td>Médico2</td>
+                        <td>Odontología</td>
+                        <td><button><a href="gestionar_cita.html">Configurar</a></button></td>
+                    </tr>
+                    <tr>
+                        <td>Paciente1</td>
+                        <td>Agendada</td>
+                        <td>5 p.m</td>
+                        <td>102</td>
+                        <td>05/01/2025</td>
+                        <td>Médico2</td>
+                        <td>Dolor pecho</td>
+                        <td><button><a href="gestionar_cita.html">Configurar</a></button></td>
+                    </tr>
+            </table>
+        </section>
+
+
+        <!--Gestionar Sistema-->
+        <section>
+            <h2>Gestión del Sistema</h2>
+            <form>
+                <label for="config-usuarios">Número máximo de usuarios:</label>
+                <input type="number" id="config-usuarios" name="config-usuarios" min="1" max="1000" value="500">
+
+                <label for="config-citas">Número máximo de citas diarias:</label>
+                <input type="number" id="config-citas" name="config-citas" min="1" max="500" value="200">
+
+                <label for="config-horarios">Horario de atención:</label>
+                <select id="config-horarios" name="config-horarios">
+                    <option value="8-16">8 a.m - 4 p.m</option>
+                    <option value="9-17">9 a.m - 5 p.m</option>
+                    <option value="10-18">10 a.m - 6 p.m</option>
+                </select>
+
+                <label for="config-notificaciones">Notificaciones por correo:</label>
+                <select id="config-notificaciones" name="config-notificaciones">
+                    <option value="si">Sí</option>
+                    <option value="no">No</option>
+                </select>
+
+                <div class="botones-gestion">
+                    <button type="submit">Guardar Cambios</button>
+                    <button type="reset">Restablecer Valores</button>
+                </div>
+            </form>
+        </section>
+    </body>
+
+    
+    <!--Pie de página-->
+    <footer>
+        <p>© 2024 MediGestión. Todos los derechos reservados.</p>  
+        <p>Juan Camilo Bernal Baquero</p>
+    </footer>
+</html>

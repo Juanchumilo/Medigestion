@@ -26,10 +26,11 @@
                 <a href="{{url_for('index')}}"><img src="{{ url_for('static', filename='img/medigestion logo_sf.png') }}" alt="Logo de MediGestión"></a>
                 <div class="usuario-menu">
                     <span>Usuario: {{session['usuario']['nombre']}} {{session['usuario']['apellido']}}</span>
-                    <select>
-                        <option>Editar Mis Datos</option>
-                        <option>Ayuda</option>
-                        <option>Cerrar Sesión</option>
+                    <select onchange="location = this.value;">
+                        <option value="">Opciones</option>
+                        <option value="/editar_datos/paciente/{{session['usuario']['id']}}">Editar mis datos</option>
+                        <option value="/atencion_cliente">Atencion al Cliente</option>
+                        <option value="{{ url_for('logout') }}">Cerrar sesión</option>
                     </select>
                 </div>
             </div>
@@ -39,30 +40,27 @@
         <!--Horarios Médicos-->
         <section class="horario-medicos">
             <h2>Horario Médicos</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Nombre</th>
-                        <th>Hora Ingreso</th>
-                        <th>Hora Salida</th>
-                        <th>Horario</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>Médico1</td>
-                        <td>5 a.m</td>
-                        <td>3 p.m</td>
-                        <td>Lun-Vier</td>
-                    </tr>
-                    <tr>
-                        <td>Médico2</td>
-                        <td>3 p.m</td>
-                        <td>1 a.m</td>
-                        <td>Mier-Dom</td>
-                    </tr>
-                </tbody>
-            </table>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Hora ingreso</th>
+                            <th>Hora salida</th>
+                            <th>Horario</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for h in horarios %}
+                        <tr>
+                            <td>{{ h.nombre }} {{h.apellido}}</td>
+                            <td>{{ h.hora_ingreso }} {{ h.hora_ingreso_tp }}</td>
+                            <td>{{ h.hora_salida }} {{ h.hora_salida_tp }}</td>
+                            <td>{{ h.horario }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
         </section>
 
 

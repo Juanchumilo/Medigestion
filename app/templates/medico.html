@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+        <meta charset="UTF-8">
+        <title>Paciente - MediGestión</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/medico_estilo.css') }}">
+    </head>
+
+    
+    <body>
+        <!--Barra de navegación -->
+        <div>
+            <nav>
+                <ul>
+                    <li><a href="{{url_for('index')}}">Inicio</a></li>
+                    <li><a href="{{url_for('ingresar')}}">Ingresar</a></li>
+                    <li><a href="{{url_for('registrarse')}}">Registrarse</a></li>
+                </ul>
+            </nav>
+        </div>
+
+
+        <!--Menu de Usuario-->
+        <header>
+            <div class="logo-usuario">
+                <a href="{{url_for('index')}}"><img src="{{ url_for('static', filename='img/medigestion logo_sf.png') }}" alt="Logo de MediGestión"></a>
+                <div class="usuario-menu">
+                    <span>Usuario: {{session['usuario']['nombre']}} {{session['usuario']['apellido']}}</span>
+                    <select onchange="location = this.value;">
+                        <option value="">Opciones</option>
+                        <option value="/editar_datos/medico/{{session['usuario']['id']}}">Editar mis datos</option>
+                        <option value="/atencion_cliente">Atencion al Cliente</option>
+                        <option value="{{ url_for('logout') }}">Cerrar sesión</option>
+                    </select>
+                </div>
+            </div>
+        </header>
+
+
+    <!--Tu horario-->
+        <section class="horario-section">
+            <form class="horario-form">
+                <table class="horario-tabla">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Hora Ingreso</th>
+                            <th>Hora Salida</th>
+                            <th>Horario</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <strong>Usuario 3</strong><br>
+                                (Médico)
+                            </td>
+                            <td>
+                                <input type="number" min="1" max="12" value="2">
+                                <select>
+                                    <option>AM</option>
+                                    <option>PM</option>
+                                </select>
+                            </td>
+                            <td>
+                                <input type="number" min="1" max="12" value="3">
+                                <select>
+                                    <option>AM</option>
+                                    <option selected>PM</option>
+                                </select>
+                            </td>
+                            <td>
+                                <select>
+                                    <option>Lunes</option>
+                                    <option>Martes</option>
+                                    <option>Miércoles</option>
+                                    <option>Jueves</option>
+                                    <option>Viernes</option>
+                                    <option>Sábado</option>
+                                    <option>Domingo</option>
+                                </select>
+                                -
+                                <select>
+                                    <option>Lunes</option>
+                                    <option>Martes</option>
+                                    <option>Miércoles</option>
+                                    <option>Jueves</option>
+                                    <option selected>Viernes</option>
+                                    <option>Sábado</option>
+                                    <option>Domingo</option>
+                                </select>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </form>
+            <!--Boton horario-->
+            <div class="btn-actualizar-contenedor">
+                <button type="submit" class="btn-actualizar">Actualizar</button>
+            </div>
+        </section>
+
+
+    <!--Reportes Citas-->
+        <section>
+            <h2>Gestionar Reportes</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nombre Paciente</th>
+                        <th>Estado</th>
+                        <th id="th-h">Hora</th>
+                        <th>Consultorio</th>
+                        <th>Fecha</th>
+                        <th>Medico a cargo</th>
+                        <th>Motivo de la Cita</th>
+                        <th>Reporte</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Paciente1</td>
+                        <td>Completada</td>
+                        <td>10 a.m</td>
+                        <td>101</td>
+                        <td>01/01/2025</td>
+                        <td>Médico1</td>
+                        <td>Consulta General</td>
+                        <td><button><a href="reportes.html">Generar</a></button></td>
+                    </tr>
+                    <tr>
+                        <td>Paciente2</td>
+                        <td>Cancelada</td>
+                        <td>2 p.m</td>
+                        <td>102</td>
+                        <td>02/01/2025</td>
+                        <td>Médico2</td>
+                        <td>Odontología</td>
+                        <td><button><a href="reportes.html">Generar</a></button></td>
+                    </tr>
+                    <tr>
+                        <td>Paciente1</td>
+                        <td>Agendada</td>
+                        <td>5 p.m</td>
+                        <td>102</td>
+                        <td>05/01/2025</td>
+                        <td>Médico2</td>
+                        <td>Dolor pecho</td>
+                        <td><button><a href="reportes.html">Generar</a></button></td>
+                    </tr>
+            </table>
+        </section>
+    </body>
+
+    <!--Pie de pagina-->
+    <footer>
+        <p>&copy; 2024 MediGestión. Todos los derechos reservados.</p>
+        <p>Juan Camilo Bernal</p>
+    </footer>
+</html>
