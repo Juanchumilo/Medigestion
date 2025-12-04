@@ -4,6 +4,7 @@
         <meta charset="UTF-8">
         <title>Paciente - MediGestión</title>
         <link rel="stylesheet" href="{{ url_for('static', filename='css/editar_datos_estilo.css') }}">
+        <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/icon logo.png') }}">
     </head>
 
     
@@ -41,7 +42,7 @@
         <!--Form para editar los datos del paciente-->
         <main>
             <div class="editar-container">
-                <h1>Indica tus datos para registrarte</h1>
+                <h1>Indica tus datos para Editar</h1>
                 <form action="/editar_datos/paciente/{{session['usuario']['id']}}" method="POST">
                     <label for="name">Nombres</label>
                     <input value="{{paciente_datos['nombre']}}" type="text" id="name" placeholder="Nombre" required name="name" minlength="3">
@@ -106,3 +107,12 @@
                 </form>
                 </div>
         </main>
+    </body>
+
+    
+<!-- Pie de pagina -->
+    <footer>
+        <p>© 2024 MediGestión. Todos los derechos reservados.</p>  
+        <p>Juan Camilo Bernal Baquero</p>
+    </footer>
+</html>

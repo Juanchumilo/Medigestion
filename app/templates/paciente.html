@@ -4,6 +4,7 @@
         <meta charset="UTF-8">
         <title>Paciente - MediGestión</title>
         <link rel="stylesheet" href="{{ url_for('static', filename='css/paciente_estilo.css') }}">
+        <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/icon logo.png') }}">
     </head>
 
     
@@ -52,58 +53,48 @@
                     <tbody>
                         {% for h in horarios %}
                         <tr>
-                            <td>{{ h.nombre }} {{h.apellido}}</td>
-                            <td>{{ h.hora_ingreso }} {{ h.hora_ingreso_tp }}</td>
-                            <td>{{ h.hora_salida }} {{ h.hora_salida_tp }}</td>
-                            <td>{{ h.horario }}</td>
+                            <td>{{ h['nombre'] }} {{ h['apellido'] }}</td>
+                            <td>{{ h['hora_ingreso'] }} {{ h['hora_ingreso_tp'] }}</td>
+                            <td>{{ h['hora_salida'] }} {{ h['hora_salida_tp'] }}</td>
+                            <td>{{ h['horario'] }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
-
         </section>
 
 
         <!--Sección Gestion Citas-->
         <section class="reportes-citas">
             <h2>Gestionar Citas</h2>
-            <form>
-                <label for="codigo-cita">Código de la Cita</label>
-                <input type="text" id="codigo-cita" name="codigo-cita">
+            <form method="POST" action="{{ url_for('paciente', id=session['usuario']['id']) }}">
+                <label for="codigo_cita">Código de la Cita</label>
+                <input type="text" id="codigo_cita" name="codigo_cita">
+                <p>Recuerde que no necesita un Código de cita para crear una Cita. <br>Esta solo la usará para buscar una ya creada</p><br>
 
-                <label for="hora-cita">Hora de la Cita</label>
-                <input type="number" id="hora-cita" name="hora-cita" min="0" max="23">
+                <label for="fecha">Fecha de la Cita</label>
+                <input type="date" id="fecha" name="fecha" min="{{hoy}}">
 
-                <label for="fecha-cita">Fecha de la Cita</label>
-                <input type="date" id="fecha-cita" name="fecha-cita">
+                <label for="hora">Hora de la Cita</label>
+                <input type="time" id="hora" name="hora">
 
-                <label for="nombre-paciente">Apellido del Paciente</label>
-                <input type="text" id="nombre-paciente" name="nombre-paciente">
+                <label for="motivo_cita">Motivo de la Cita</label>
+                <input type="text" id="motivo_cita" name="motivo_cita">
 
-                <label for="nombre-paciente">Nombre del Paciente</label>
-                <input type="text" id="nombre-paciente" name="nombre-paciente">
-
-                <label for="telefono-paciente">Teléfono Celular</label>
-                <input type="text" id="telefono-paciente" name="telefono-paciente">
-
-                <label for="motivo-cita">Motivo de la Cita</label>
-                <select id="motivo-cita" name="motivo-cita">
-                    <option value="Motivo1">Motivo1</option>
-                    <option value="Motivo2">Motivo2</option>
-                    <option value="Motivo3">Motivo3</option>
-                    <option value="Motivo4">Motivo4</option>
-                    <option value="Motivo5">Motivo5</option>
-                    <option value="Motivo6">Motivo6</option>
-                </select>
-                <label>
-                    <input type="checkbox" name="otro-motivo"> Otro
-                    <input type="text" name="motivo-otro" id="ch-txt">
-                </label>
+                <!--Flash para especificar al usuario completar bien los campos para crear cita-->
+                {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                        <ul class="flash-messages">
+                        {% for message in messages %}
+                            <li>{{ message }}</li>
+                        {% endfor %}
+                        </ul>
+                    {% endif %}
+                {% endwith %}
 
                 <div class="botones-citas">
-                    <button type="button">Buscar</button>
-                    <button type="button">Crear</button>
-                    <button type="button">Editar</button>
+                    <button type="submit" name="accion" value="buscar">Buscar</button>
+                    <button type="submit" name="accion" value="crear">Crear</button>
                 </div>
             </form>
         </section>
@@ -116,46 +107,22 @@
                 <thead>
                     <tr>
                         <th>Estado</th>
-                        <th>Hora Cita</th>
-                        <th>Sala Cita</th>
-                        <th>Fecha</th>
-                        <th>Médico Encargado</th>
+                        <th>Fecha y Hora<br>(yy/mm/dd)</th>
+                        <th>Consultorio</th>
                         <th>Motivo</th>
+                        <th>Editar</th>
                     </tr>
                 </thead>
                 <tbody>
+                    {%if cita_datos%}
                     <tr>
-                        <td>Agendada</td>
-                        <td>7 a.m</td>
-                        <td>Sala 2</td>
-                        <td>XX/XX/XXXX</td>
-                        <td>Médico1</td>
-                        <td>Motivo1</td>
+                        <td>{{cita_datos['estado']}}</td>
+                        <td>Fecha: {{cita_datos['fecha']}}<br> Hora: {{cita_datos['hora']}}</td>
+                        <td>{{cita_datos['consultorio']}}</td>
+                        <td>{{cita_datos['motivo']}}</td>
+                        <td><a class="editar" href="{{ url_for('editar_cita_paciente', id=cita_datos['id']) }}">Editar</a></td>
                     </tr>
-                    <tr>
-                        <td>Cancelada</td>
-                        <td>9 a.m</td>
-                        <td>Sala 2</td>
-                        <td>XX/XX/XXXX</td>
-                        <td>Médico1</td>
-                        <td>Motivo2</td>
-                    </tr>
-                    <tr>
-                        <td>Completada</td>
-                        <td>5 p.m</td>
-                        <td>Sala 3</td>
-                        <td>XX/XX/XXXX</td>
-                        <td>Médico2</td>
-                        <td>Motivo3</td>
-                    </tr>
-                    <tr>
-                        <td>Reasignada</td>
-                        <td>2 p.m</td>
-                        <td>Sala 1</td>
-                        <td>XX/XX/XXXX</td>
-                        <td>Médico2</td>
-                        <td>Motivo4</td>
-                    </tr>
+                    {%endif%}
                 </tbody>
             </table>
         </section>

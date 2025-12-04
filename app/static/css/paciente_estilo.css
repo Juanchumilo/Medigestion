@@ -175,7 +175,9 @@ form label {
 
 form input[type="text"],
 form input[type="number"],
+form input[type="time"],
 form input[type="date"],
+form input[type="datetime"],
 form select {
     padding: 10px;
     border-radius: 8px;
@@ -208,7 +210,8 @@ form input[type="checkbox"] {
     margin-top: 10px;
 }
 
-.botones-citas button {
+.botones-citas button,
+button.editar {
     flex: 1;
     padding: 10px 15px;
     border: none;
@@ -220,9 +223,14 @@ form input[type="checkbox"] {
     transition: background 0.3s, transform 0.4s;
 }
 
-.botones-citas button:hover {
+.botones-citas button:hover,
+button.editar:hover {
     background-color: #218838;
     transform: translateY(-3px);
+}
+.editar a{
+    text-decoration: none;
+    color: white;
 }
 
 /* Footer */
@@ -259,4 +267,38 @@ footer {
 /* Efecto al pasar el mouse por encima del pulgar */
 ::-webkit-scrollbar-thumb:hover {
   background: #0056b3;
+}
+
+/* Lista contenedora */
+.flash-messages {
+    list-style: none;
+    padding: 0;
+    margin: 20px auto;
+    max-width: 600px;
+    font-family: "Constantia", serif;
+}
+
+/* Cada mensaje */
+.flash-messages li {
+    background: #e8f4fd;
+    border-left: 5px solid #3498db;
+    color: #1a608f;
+    padding: 14px 10px;
+    margin-bottom: 12px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    font-size: 16px;
+    animation: fadeSlide 0.4s ease;
+}
+
+/* Animación suave */
+@keyframes fadeSlide {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
