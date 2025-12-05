@@ -40,7 +40,8 @@
 
     <!--Tu horario-->
         <section class="horario-section">
-            <form class="horario-form">
+            <form class="horario-form" id="actualizar-horario" action="{{url_for('medico',id=session['usuario']['id'])}}" method="POST">
+                <h2>Tu Horario</h2>
                 <table class="horario-tabla">
                     <thead>
                         <tr>
@@ -53,51 +54,44 @@
                     <tbody>
                         <tr>
                             <td>
-                                <strong>Usuario 3</strong><br>
-                                (Médico)
+                                <strong>{{session['usuario']['nombre']}} {{session['usuario']['apellido']}}</strong>
                             </td>
                             <td>
-                                <input type="number" min="1" max="12" value="2">
-                                <select>
-                                    <option>AM</option>
-                                    <option>PM</option>
+                                <input type="number" min="1" max="12" value="{{horario['hora_ingreso']}}" name="hora_ingreso">
+                                <select name="hora_ingreso_tp">
+                                    <option value="AM" {{ "selected" if horario['hora_ingreso_tp'] == "AM" else "" }}>AM</option>
+                                    <option value="PM" {{ "selected" if horario['hora_ingreso_tp'] == "PM" else "" }}>PM</option>
                                 </select>
                             </td>
                             <td>
-                                <input type="number" min="1" max="12" value="3">
-                                <select>
-                                    <option>AM</option>
-                                    <option selected>PM</option>
+                                <input type="number" min="1" max="12" value="{{horario['hora_salida']}}" name="hora_salida">
+                                <select name="hora_salida_tp">
+                                    <option value="AM" {{ "selected" if horario['hora_salida_tp'] == "AM" else "" }}>AM</option>
+                                    <option value="PM" {{ "selected" if horario['hora_salida_tp'] == "PM" else "" }}>PM</option>
                                 </select>
                             </td>
                             <td>
-                                <select>
-                                    <option>Lunes</option>
-                                    <option>Martes</option>
-                                    <option>Miércoles</option>
-                                    <option>Jueves</option>
-                                    <option>Viernes</option>
-                                    <option>Sábado</option>
-                                    <option>Domingo</option>
-                                </select>
-                                -
-                                <select>
-                                    <option>Lunes</option>
-                                    <option>Martes</option>
-                                    <option>Miércoles</option>
-                                    <option>Jueves</option>
-                                    <option selected>Viernes</option>
-                                    <option>Sábado</option>
-                                    <option>Domingo</option>
+                                <select name="horario">
+                                    <option value="Lun-Vier">Lun-Vier</option>
+                                    <option value="Mier-Dom">Mier-Dom</option>
                                 </select>
                             </td>
                         </tr>
                     </tbody>
                 </table>
+                {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                        <ul class="flash-messages">
+                        {% for message in messages %}
+                            <li>{{ message }}</li>
+                        {% endfor %}
+                        </ul>
+                    {% endif %}
+                {% endwith %}
             </form>
             <!--Boton horario-->
             <div class="btn-actualizar-contenedor">
-                <button type="submit" class="btn-actualizar">Actualizar</button>
+                <button type="submit" class="btn-actualizar" form="actualizar-horario">Actualizar</button>
             </div>
         </section>
 
@@ -112,43 +106,26 @@
                         <th>Estado</th>
                         <th id="th-h">Hora</th>
                         <th>Consultorio</th>
-                        <th>Fecha</th>
-                        <th>Medico a cargo</th>
+                        <th>Fecha<br>(YY/MM/DD)</th>
                         <th>Motivo de la Cita</th>
                         <th>Reporte</th>
                     </tr>
                 </thead>
                 <tbody>
+                    {%for i in cita_detalles%}
                     <tr>
-                        <td>Paciente1</td>
-                        <td>Completada</td>
-                        <td>10 a.m</td>
-                        <td>101</td>
-                        <td>01/01/2025</td>
-                        <td>Médico1</td>
-                        <td>Consulta General</td>
-                        <td><button><a href="reportes.html">Generar</a></button></td>
+                        <td>{{i['paciente_nombre']}} {{i['paciente_apellido']}}</td>
+                        <td>{{i['estado']}}</td>
+                        <td>{{i['hora']}}</td>
+                        <td>{{i['consultorio']}}</td>
+                        <td>{{i['fecha']}}</td>
+                        <td>{{i['motivo']}}</td>
+                        
+                        <td>{%if i['estado']=='Programada'%}<button><a href="{{url_for('medico_reporte', id=i['id'])}}">Generar</a></button>{%endif%}</td>
+                        
                     </tr>
-                    <tr>
-                        <td>Paciente2</td>
-                        <td>Cancelada</td>
-                        <td>2 p.m</td>
-                        <td>102</td>
-                        <td>02/01/2025</td>
-                        <td>Médico2</td>
-                        <td>Odontología</td>
-                        <td><button><a href="reportes.html">Generar</a></button></td>
-                    </tr>
-                    <tr>
-                        <td>Paciente1</td>
-                        <td>Agendada</td>
-                        <td>5 p.m</td>
-                        <td>102</td>
-                        <td>05/01/2025</td>
-                        <td>Médico2</td>
-                        <td>Dolor pecho</td>
-                        <td><button><a href="reportes.html">Generar</a></button></td>
-                    </tr>
+                    {%endfor%}
+                    
             </table>
         </section>
     </body>

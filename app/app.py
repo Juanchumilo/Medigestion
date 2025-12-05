@@ -251,7 +251,7 @@ def paciente(id):
 
 
 #Medico
-@app.route('/medico/<int:id>')
+@app.route('/medico/<int:id>',methods=['GET','POST'])
 def medico(id):
     if 'usuario' not in session:
         return redirect('/ingresar')
@@ -260,12 +260,60 @@ def medico(id):
         return "Acceso no autorizado", 403  
 
     # Session Exitoso
-    return render_template("medico.html")
+
+    #Horario Actual
+    conn=get_connection()
+    cursor=conn.cursor()
+    cursor.execute("SELECT * FROM horario_medicos WHERE medico_id=%s",(id))
+    horario=cursor.fetchone()
+    conn.close()
+    cursor.close()
+
+    if request.method=='POST':
+        hora_ingreso=request.form['hora_ingreso']
+        hora_ingreso_tp=request.form['hora_ingreso_tp']
+        hora_salida=request.form['hora_salida']
+        hora_salida_tp=request.form['hora_salida_tp']
+        horario=request.form['horario']
+
+        conn=get_connection()
+        cursor=conn.cursor()
+        cursor.execute("UPDATE horario_medicos SET hora_ingreso=%s,hora_ingreso_tp=%s,hora_salida=%s,hora_salida_tp=%s,horario=%s WHERE medico_id=%s",(hora_ingreso,hora_ingreso_tp,hora_salida,hora_salida_tp,horario,id))
+        conn.commit()
+
+        conn.close()
+        cursor.close()
+
+        flash('Horario Actualizado Correctamente')
+        return redirect(url_for('medico',id=id))
+    
+    #Gestionar Reportes
+
+    sql = """
+    SELECT c.id, c.fecha, c.hora, c.motivo, c.estado, c.consultorio,
+        p.id AS paciente_id, p.nombre AS paciente_nombre, p.apellido AS paciente_apellido,
+        m.id AS medico_id, m.nombre AS medico_nombre, m.apellido AS medico_apellido
+    FROM citas c
+    JOIN pacientes p ON c.paciente_id = p.id
+    JOIN medicos m ON c.medico_id = m.id
+    WHERE c.medico_id = %s 
+    """
+
+
+    conn=get_connection()
+    cursor=conn.cursor()
+    cursor.execute(sql, (id))  
+    cita_detalles = cursor.fetchall()   
+    cursor.close()
+    conn.close()
+
+
+    return render_template("medico.html",horario=horario,cita_detalles=cita_detalles)
 
 
 
 #Admin
-@app.route('/admin/<int:id>')
+@app.route('/admin/<int:id>', methods=['GET','POST'])
 def admin(id):
     if 'usuario' not in session:
         return redirect('/ingresar')
@@ -274,10 +322,18 @@ def admin(id):
         return "Acceso no autorizado", 403  
 
     # Session Exitoso
-    conn=get_connection()
-    cursor=conn.cursor()
+
+    #Horarios Medicos
+    conn= get_connection()
+    cursor= conn.cursor()
+    cursor.execute("SELECT m.nombre,m.apellido,h.id AS horario_id,h.hora_ingreso,h.hora_ingreso_tp,h.hora_salida,h.hora_salida_tp,h.horario FROM horario_medicos h JOIN medicos m ON h.medico_id = m.id;")
+    horarios=cursor.fetchall()
+    conn.close()
+    cursor.close()
+
     
-    return render_template("admin.html")
+    
+    return render_template("admin.html", horarios=horarios)
 
 
 
@@ -547,7 +603,48 @@ def efectuarpago(id):
 
 
 
+#-------> Generar Reportes-Medico
+@app.route('/medico/reporte/<int:id>', methods=['GET','POST'])
+def medico_reporte(id):
+    if 'usuario' not in session:
+        return redirect('/ingresar')
+    
+    conn=get_connection()
+    cursor=conn.cursor()
+    sql = """
+    SELECT c.id, c.fecha, c.hora, c.motivo, c.estado, c.consultorio, c.observaciones,
+        p.id AS paciente_id, p.nombre AS paciente_nombre, p.apellido AS paciente_apellido,
+        m.id AS medico_id, m.nombre AS medico_nombre, m.apellido AS medico_apellido
+    FROM citas c
+    JOIN pacientes p ON c.paciente_id = p.id
+    JOIN medicos m ON c.medico_id = m.id
+    WHERE c.id = %s 
+    """
+    cursor.execute(sql,id)
+    cita=cursor.fetchone()
+    conn.close()
+    cursor.close()
 
+
+    if request.method=='POST':
+        motivo=request.form['motivo-cita']
+        observaciones=request.form['observaciones']
+        estado='Completada'
+
+        conn=get_connection()
+        cursor=conn.cursor()
+        cursor.execute("UPDATE citas SET motivo=%s,observaciones=%s,estado=%s WHERE id=%s",(motivo,observaciones,estado,id))
+        conn.commit()
+        conn.close()
+        cursor.close()
+
+
+        flash('Reporte generado con exito')
+        return redirect(url_for('medico',id=cita['medico_id']))
+
+
+
+    return render_template('reportes.html', cita=cita)
 
 
 

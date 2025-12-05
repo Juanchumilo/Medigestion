@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+        <meta charset="UTF-8">
+        <title>Medico ~ Reportes - MediGestión</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/reportes_estilo.css') }}">
+        <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/icon logo.png') }}">
+    </head>
+
+    
+    <body>
+        <!--Barra de navegación -->
+        <div>
+            <nav>
+                <ul>
+                    <li><a href="{{url_for('index')}}">Inicio</a></li>
+                    <li><a href="{{url_for('ingresar')}}">Ingresar</a></li>
+                    <li><a href="{{url_for('registrarse')}}">Registrarse</a></li>
+                </ul>
+            </nav>
+        </div>
+
+
+        <!--Menu de Usuario-->
+        <header>
+            <div class="logo-usuario">
+                <a href="{{url_for('index')}}"><img src="{{ url_for('static', filename='img/medigestion logo_sf.png') }}" alt="Logo de MediGestión"></a>
+                <div class="usuario-menu">
+                    <span>Usuario: {{session['usuario']['nombre']}} {{session['usuario']['apellido']}}</span>
+                    <select onchange="location = this.value;">
+                        <option value="">Opciones</option>
+                        <option value="/editar_datos/paciente/{{session['usuario']['id']}}">Editar mis datos</option>
+                        <option value="/atencion_cliente">Atencion al Cliente</option>
+                        <option value="{{ url_for('logout') }}">Cerrar sesión</option>
+                    </select>
+                </div>
+            </div>
+        </header>
+
+
+        <!--Zona de Reportes-->
+        <section class="reportes">
+            <h2>Reportes</h2>
+            <form id="generar" action="{{url_for('medico_reporte', id=cita['id'])}}" method="POST">
+                <h4 id="nombre-paciente">Nombre del paciente: {{cita['paciente_nombre']}} {{cita['paciente_apellido']}}</h4>
+                <h4 id="nombre-paciente">ID: {{cita['paciente_id']}}</h4><br>
+                
+                <h4>Fecha de la Cita: {{cita['fecha']}}</h4>
+                <br>
+                <h4>Hora de la Cita: {{cita['hora']}}</h4>
+                <br>
+
+                <label for="motivo-cita">Motivo de la Cita</label>
+                <input type="text" name="motivo-cita" required value="{{cita['motivo']}}">
+
+                <label for="observaciones">Observaciones</label>
+                <input type="text" id="observaciones" name="observaciones" max="200" required value="{{cita['observaciones']}}">
+            </form>
+            <button type="submit" form="generar">Generar Reporte</button>
+        </section>
+    </body>
+    
+    
+    <!--Pie de pagina-->
+    <footer>
+        <p>&copy; 2024 MediGestión. Todos los derechos reservados.</p>
+        <p>Juan Camilo Bernal</p>
+    </footer>
+</html>
