@@ -41,48 +41,91 @@
         <!--Gestión de Usuarios-->
         <section>
             <div class="gestion-usuarios">
-                <h2>Gestión de Usuarios</h2>
+                <h2>Gestión de Usuarios</h2><br>
+                <h3>Pacientes</h3>
                 <table>
                     <thead>
                         <tr>
                             <th>Nombre</th>
                             <th>Rol</th>
-                            <th>Edad</th>
                             <th>Correo</th>
                             <th>Editar</th>
                         </tr>
                     </thead>
                     <tbody>
+                        {%for i in pacientes%}
                         <tr>
-                            <td>Usuario1</td>
+                            <td>{{i['nombre']}} {{i['apellido']}}</td>
                             <td>Paciente</td>
-                            <td>26</td>
-                            <td>xxxxx@gmail.com</td>
-                            <td><button><a href="gestion_usuarios.html">Gestionar</a>></button></td>
+                            <td>{{i['email']}}</td>
+                            <td><button><a href="{{url_for('gestion_usuarios_paciente',id=i['id'])}}">Gestionar</a></button></td>
                         </tr>
-                        <tr>
-                            <td>Usuario2</td>
-                            <td>Médico</td>
-                            <td>35</td>
-                            <td>xxxxx@gmail.com</td>
-                            <td><button><a href="gestion_usuarios.html">Gestionar</a>></button></td>
-                        </tr>
-                        <tr>
-                            <td>Usuario3</td>
-                            <td>Médico</td>
-                            <td>32</td>
-                            <td>xxxxx@gmail.com</td>
-                            <td><button><a href="gestion_usuarios.html">Gestionar</a>></button></td>
-                        </tr>
-                        <tr>
-                            <td>Usuario4</td>
-                            <td>Paciente</td>
-                            <td>54</td>
-                            <td>xxxxx@gmail.com</td>
-                            <td><button><a href="gestion_usuarios.html">Gestionar</a>></button></td>
-                        </tr>
+                        {%endfor%}
                     </tbody>
                 </table>
+
+                <!--Paginacion-->
+                <div class="paginacion">
+                {% if pagina > 1 %}
+                    <a href="{{ url_for('admin', id=session['usuario']['id'], pagina=pagina-1) }}">
+                        ◀ Anterior
+                    </a>
+                {% endif %}
+                <span>Página {{ pagina }}</span>
+                {% if hay_mas %}
+                    <a href="{{ url_for('admin', id=session['usuario']['id'], pagina=pagina+1) }}">
+                        Siguiente ▶
+                    </a>
+                {% endif %}
+
+                
+
+                <br><h3>Medicos</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Rol</th>
+                            <th>Correo</th>
+                            <th>Editar</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {%for i in medicos%}
+                        <tr>
+                            <td>{{i['nombre']}} {{i['apellido']}}</td>
+                            <td>Medico</td>
+                            <td>{{i['email']}}</td>
+                            <td><button><a href="{{url_for('gestion_usuarios_medico',id=i['id'])}}">Gestionar</a></button></td>
+                        </tr>
+                    {%endfor%}
+                    </tbody>
+                </table>
+
+                <!--Paginacion-->
+                <div class="paginacion">
+                {% if pagina_medicos > 1 %}
+                    <a href="{{ url_for('admin', id=session['usuario']['id'], pagina_medicos=pagina_medicos-1) }}">
+                        ◀ Anterior
+                    </a>
+                {% endif %}
+                <span>Página {{ pagina_medicos }}</span>
+                {% if hay_mas_medicos %}
+                    <a href="{{ url_for('admin', id=session['usuario']['id'], pagina_medicos=pagina_medicos+1) }}">
+                        Siguiente ▶
+                    </a>
+                {% endif %}<br>
+            </div>
+            <!--Flashes-->
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <ul class="flash-messages">
+                    {% for message in messages %}
+                        <li>{{ message }}</li>
+                    {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endwith %}
         </section>
 
 
@@ -93,24 +136,20 @@
             <thead>
                 <tr>
                     <th>Nombre</th>
-                    <th>Hora Ingreso</th>
-                    <th>Hora Salida</th>
+                    <th>Hora ingreso</th>
+                    <th>Hora salida</th>
                     <th>Horario</th>
                 </tr>
             </thead>
             <tbody>
+                {% for h in horarios %}
                 <tr>
-                    <td>Médico1</td>
-                    <td>5 a.m</td>
-                    <td>3 p.m</td>
-                    <td>Lun-Vier</td>
+                    <td>{{ h['nombre'] }} {{ h['apellido'] }}</td>
+                    <td>{{ h['hora_ingreso'] }} {{ h['hora_ingreso_tp'] }}</td>
+                    <td>{{ h['hora_salida'] }} {{ h['hora_salida_tp'] }}</td>
+                    <td>{{ h['horario'] }}</td>
                 </tr>
-                <tr>
-                    <td>Médico2</td>
-                    <td>3 p.m</td>
-                    <td>1 a.m</td>
-                    <td>Mier-Dom</td>
-                </tr>
+                {% endfor %}
             </tbody>
         </table>
     </section>
@@ -126,44 +165,41 @@
                         <th>Estado</th>
                         <th id="th-h">Hora</th>
                         <th>Consultorio</th>
-                        <th>Fecha</th>
+                        <th>Fecha<br>(YY/MM/DD)</th>
                         <th>Medico a cargo</th>
                         <th>Motivo de la Cita</th>
                         <th>Editar</th>
                     </tr>
                 </thead>
                 <tbody>
+                    {%for i in citas%}
+                    {%if i['estado'] != 'Completada'%}
                     <tr>
-                        <td>Paciente1</td>
-                        <td>Completada</td>
-                        <td>10 a.m</td>
-                        <td>101</td>
-                        <td>01/01/2025</td>
-                        <td>Médico1</td>
-                        <td>Consulta General</td>
-                        <td><button><a href="gestionar_cita.html">Configurar</a></button></td>
-                    </tr>
-                    <tr>
-                        <td>Paciente2</td>
-                        <td>Cancelada</td>
-                        <td>2 p.m</td>
-                        <td>102</td>
-                        <td>02/01/2025</td>
-                        <td>Médico2</td>
-                        <td>Odontología</td>
-                        <td><button><a href="gestionar_cita.html">Configurar</a></button></td>
-                    </tr>
-                    <tr>
-                        <td>Paciente1</td>
-                        <td>Agendada</td>
-                        <td>5 p.m</td>
-                        <td>102</td>
-                        <td>05/01/2025</td>
-                        <td>Médico2</td>
-                        <td>Dolor pecho</td>
-                        <td><button><a href="gestionar_cita.html">Configurar</a></button></td>
+                        <td>{{i['paciente_nombre']}} {{i['paciente_apellido']}}</td>
+                        <td>{{i['estado']}}</td>
+                        <td>{{i['hora']}}</td>
+                        <td>{{i['consultorio']}}</td>
+                        <td>{{i['fecha']}}</td>
+                        <td>{{i['medico_nombre']}} {{i['medico_apellido']}}</td>
+                        <td>{{i['motivo']}}</td>
+                        <td><button><a href="{{url_for('gestionar_cita',id=i['id'])}}">Configurar</a></button></td>
+                    {%endif%}
+                    {%endfor%}
                     </tr>
             </table>
+            <!--Paginacion-->
+                <div class="paginacion">
+                {% if paginacita > 1 %}
+                    <a href="{{ url_for('admin', id=session['usuario']['id'], paginacita=paginacita-1) }}">
+                        ◀ Anterior
+                    </a>
+                {% endif %}
+                <span>Página {{ paginacita }}</span>
+                {% if hay_mas_citas %}
+                    <a href="{{ url_for('admin', id=session['usuario']['id'], paginacita=paginacita+1) }}">
+                        Siguiente ▶
+                    </a>
+                {% endif %}
         </section>
 
 

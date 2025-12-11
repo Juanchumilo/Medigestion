@@ -315,25 +315,113 @@ def medico(id):
 #Admin
 @app.route('/admin/<int:id>', methods=['GET','POST'])
 def admin(id):
+
     if 'usuario' not in session:
         return redirect('/ingresar')
 
     if session['usuario']['id'] != id:
         return "Acceso no autorizado", 403  
 
-    # Session Exitoso
+    # ===== PAGINACIÓN =====
+    pagina = request.args.get('pagina', 1, type=int)
+    por_pagina = 5
+    offset = (pagina - 1) * por_pagina
 
-    #Horarios Medicos
-    conn= get_connection()
-    cursor= conn.cursor()
-    cursor.execute("SELECT m.nombre,m.apellido,h.id AS horario_id,h.hora_ingreso,h.hora_ingreso_tp,h.hora_salida,h.hora_salida_tp,h.horario FROM horario_medicos h JOIN medicos m ON h.medico_id = m.id;")
-    horarios=cursor.fetchall()
+    # ------ Horarios Médicos ------
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT m.nombre, m.apellido, h.id AS horario_id, h.hora_ingreso, 
+        h.hora_ingreso_tp, h.hora_salida, h.hora_salida_tp, h.horario 
+        FROM horario_medicos h 
+        JOIN medicos m ON h.medico_id = m.id;
+    """)
+    horarios = cursor.fetchall()
     conn.close()
     cursor.close()
 
-    
-    
-    return render_template("admin.html", horarios=horarios)
+    # ------ Pacientes con paginación ------
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    # Contar total
+    cursor.execute("SELECT COUNT(*) AS total FROM pacientes")
+    total_pacientes = cursor.fetchone()['total']
+
+    # Página actual
+    cursor.execute("""
+        SELECT id,nombre, apellido, email
+        FROM pacientes
+        LIMIT %s OFFSET %s
+    """, (por_pagina, offset))
+    pacientes = cursor.fetchall()
+
+    conn.close()
+    cursor.close()
+
+    hay_mas = pagina * por_pagina < total_pacientes
+
+    # ------ Médicos ------
+
+    # ===== MEDICOS PAGINACIÓN =====
+    pagina_medicos = request.args.get('pagina_medicos', 1, type=int)
+    por_pagina = 5
+    offset = (pagina_medicos - 1) * por_pagina
+    # ------ Medicos con paginación ------
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    # Contar total
+    cursor.execute("SELECT COUNT(*) AS total FROM medicos")
+    total_medicos = cursor.fetchone()['total']
+
+    # Página actual
+    cursor.execute("""
+        SELECT id,nombre, apellido, email
+        FROM medicos
+        LIMIT %s OFFSET %s
+    """, (por_pagina, offset))
+    medicos = cursor.fetchall()
+
+    conn.close()
+    cursor.close()
+
+    hay_mas_medicos = pagina_medicos * por_pagina < total_medicos
+
+
+    #-------Gestionar citas---------
+
+    # ===== SEGUNDA PAGINACIÓN =====
+    paginacita = request.args.get('paginacita', 1, type=int)
+    por_pagina_2 = 5
+    offset_citas = (paginacita - 1) * por_pagina_2
+
+    # ------ Citas con paginación ------
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    # Contar total
+    cursor.execute("SELECT COUNT(*) AS total FROM citas")
+    total_citas = cursor.fetchone()['total']
+
+    # Página actual
+    cursor.execute("""
+        SELECT c.id, c.fecha, c.hora, c.motivo, c.estado, c.consultorio,c.estado,
+        p.id AS paciente_id, p.nombre AS paciente_nombre, p.apellido AS paciente_apellido,
+        m.id AS medico_id, m.nombre AS medico_nombre, m.apellido AS medico_apellido
+    FROM citas c
+    JOIN pacientes p ON c.paciente_id = p.id
+    JOIN medicos m ON c.medico_id = m.id 
+        LIMIT %s OFFSET %s
+    """, (por_pagina_2, offset_citas))
+    citas = cursor.fetchall()
+
+    conn.close()
+    cursor.close()
+
+    hay_mas_citas = paginacita * por_pagina_2 < total_citas
+
+    return render_template("admin.html",horarios=horarios,pacientes=pacientes,medicos=medicos,pagina=pagina,pagina_medicos=pagina_medicos,hay_mas=hay_mas,hay_mas_medicos=hay_mas_medicos, citas=citas,paginacita=paginacita,hay_mas_citas=hay_mas_citas)
 
 
 
@@ -358,7 +446,7 @@ def editar_datos(id):
         cursor.close()
         conn.close()
 
-        return render_template("editar_datos-paciente.html", paciente_datos=paciente_datos)
+        return render_template("editar_datos-paciente.html", paciente_datos=paciente_datos,hoy=hoy)
     
     
     pass1=request.form['password']
@@ -544,12 +632,13 @@ def editar_cita_paciente(id):
         hora = request.form['hora']
         motivo = request.form['motivo']
         estado = request.form['estado']
+        accion=request.form['accion']
         
 
 
 
         # Si la cita sigue programada → actualizar
-        if estado == 'Programada':
+        if accion == 'editar':
             conn = get_connection()
             cursor = conn.cursor()
             cursor.execute('UPDATE citas SET fecha=%s, hora=%s, motivo=%s WHERE id=%s',(fecha, hora, motivo, id))
@@ -558,14 +647,29 @@ def editar_cita_paciente(id):
             conn.close()
 
         # Si la cita fue cancelada → eliminar
-        elif estado == 'Cancelada':
+        elif accion == 'eliminar':
             conn = get_connection()
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM citas WHERE id=%s",(id))
-            conn.commit()
-            cursor.close()
-            conn.close()
 
+            try:
+                # 1. Eliminar pagos relacionados con la cita
+                cursor.execute("DELETE FROM efectuar_pago WHERE cita_pagada = %s", (id,))
+
+                # 2. Eliminar la cita
+                cursor.execute("DELETE FROM citas WHERE id = %s", (id,))
+
+                conn.commit()
+                flash("Cita eliminada correctamente")
+
+            except Exception as e:
+                conn.rollback()
+                flash("Error al eliminar la cita: " + str(e))
+
+            finally:
+                cursor.close()
+                conn.close()
+
+            flash('Cita eliminada correctamente')
             return redirect(url_for('paciente', id=session['usuario']['id']))
     return render_template('editar_cita_paciente.html',datos_cita=datos_cita, hoy=hoy)
 
@@ -645,6 +749,198 @@ def medico_reporte(id):
 
 
     return render_template('reportes.html', cita=cita)
+
+
+
+@app.route('/admin/gestion-usuarios/paciente/<int:id>', methods=['GET','POST'])
+def gestion_usuarios_paciente(id):
+    if 'usuario' not in session:
+        return redirect('/ingresar')
+    
+    #===== Valores Predeterminados ======
+    conn=get_connection()
+    cursor=conn.cursor()
+    cursor.execute('SELECT * FROM pacientes WHERE id=%s',(id))
+    datos=cursor.fetchone()
+    conn.close()
+    cursor.close()
+
+    if request.method=='POST':
+        if request.form['password'] == request.form['confirm_password']:
+            nombre=request.form['nombre']
+            apellido=request.form['apellido']
+            tipo_documento=request.form['tipo_documento']
+            documento=request.form['documento']
+            birthdate=request.form['birthdate']
+            genero=request.form['genero']
+            telefono=request.form['telefono']
+            email=request.form['email']
+            rh=request.form['rh']
+            password=bcrypt.hashpw(request.form['password'].encode(), bcrypt.gensalt())
+
+            sql='UPDATE pacientes SET nombre=%s,apellido=%s,tipo_documento=%s,documento=%s,fecha_nacimiento=%s,genero=%s,telefono=%s,email=%s,rh=%s,password=%s WHERE id=%s'
+
+            conn=get_connection()
+            cursor=conn.cursor()
+            cursor.execute(sql,(nombre,apellido,tipo_documento,documento,birthdate,genero,telefono,email,rh,password,id))
+            conn.commit()
+            conn.close()
+            cursor.close()
+
+            flash('Usuario Editado con éxito')
+            return redirect(url_for('admin', id=session['usuario']['id']))
+        
+        else:
+            flash('Las contraseñas ingresadas no coinciden')
+            return redirect(url_for('gestion_usuario_paciente',id=id))
+
+
+    return render_template('gestion_usuarios_paciente.html',datos=datos,hoy=hoy)
+
+
+
+@app.route('/admin/gestion-usuarios/medico/<int:id>', methods=['GET','POST'])
+def gestion_usuarios_medico(id):
+    if 'usuario' not in session:
+        return redirect('/ingresar')
+    
+    #===== Valores Predeterminados ======
+    conn=get_connection()
+    cursor=conn.cursor()
+    cursor.execute('SELECT * FROM medicos WHERE id=%s',(id))
+    datos=cursor.fetchone()
+    conn.close()
+    cursor.close()
+
+    if request.method=='POST':
+        if request.form['password'] == request.form['confirm_password']:
+            nombre=request.form['nombre']
+            apellido=request.form['apellido']
+            documento=request.form['documento']
+            telefono=request.form['telefono']
+            email=request.form['email']
+            password=bcrypt.hashpw(request.form['password'].encode(), bcrypt.gensalt())
+
+            sql='UPDATE medicos SET nombre=%s,apellido=%s,documento=%s,telefono=%s,email=%s,password=%s WHERE id=%s'
+
+            conn=get_connection()
+            cursor=conn.cursor()
+            cursor.execute(sql,(nombre,apellido,documento,telefono,email,password,id))
+            conn.commit()
+            conn.close()
+            cursor.close()
+
+            flash('Usuario Editado con éxito')
+            return redirect(url_for('admin', id=session['usuario']['id']))
+        
+        else:
+            flash('Las contraseñas ingresadas no coinciden')
+            return redirect(url_for('gestion_usuario_paciente',id=id))
+
+
+    return render_template('gestion_usuarios_medico.html',datos=datos,hoy=hoy)
+
+
+
+@app.route('/admin/gestionar-cita/<int:id>', methods=['GET','POST'])
+def gestionar_cita(id):
+    if 'usuario' not in session:
+        return redirect('/ingresar')
+    
+
+    #====== Valores predefinidos ======#
+    conn=get_connection()
+    cursor=conn.cursor()
+    sql = """
+    SELECT c.id, c.fecha, c.hora, c.motivo, c.estado, c.consultorio, c.observaciones,
+        p.id AS paciente_id, p.nombre AS paciente_nombre, p.apellido AS paciente_apellido,
+        m.id AS medico_id, m.nombre AS medico_nombre, m.apellido AS medico_apellido
+    FROM citas c
+    JOIN pacientes p ON c.paciente_id = p.id
+    JOIN medicos m ON c.medico_id = m.id
+    WHERE c.id = %s 
+    """
+
+    cursor.execute(sql,(id))
+    datos_cita=cursor.fetchone()
+    conn.close()
+    cursor.close()
+
+    #====== Cantidad de Pacientes======#
+    conn=get_connection()
+    cursor=conn.cursor()
+    cursor.execute('SELECT pacientes.nombre,pacientes.apellido,pacientes.id FROM pacientes')
+    pacientes=cursor.fetchall()
+    conn.close()
+    cursor.close()
+
+    #====== Cantidad de Medicos======#
+    conn=get_connection()
+    cursor=conn.cursor()
+    cursor.execute('SELECT medicos.nombre,medicos.apellido,medicos.id FROM medicos')
+    medicos=cursor.fetchall()
+    conn.close()
+    cursor.close()
+
+    #====== Cantidad de Consultorios======#
+    conn=get_connection()
+    cursor=conn.cursor()
+    cursor.execute('SELECT consultorio.nombre,consultorio.id FROM consultorio')
+    consultorios=cursor.fetchall()
+    conn.close()
+    cursor.close()
+
+    if request.method=='POST':
+        accion = request.form["accion"]
+        if accion=='editar':
+            paciente_seleccionado=request.form['paciente_seleccionado']
+            medico_seleccionado=request.form['medico_seleccionado']
+            consultorio_seleccionado=request.form['consultorio_seleccionado']
+            fecha=request.form['fecha']
+            hora=request.form['hora']
+            motivo=request.form['motivo']
+            observaciones=request.form['observaciones']
+
+            conn=get_connection()
+            cursor=conn.cursor()
+
+            sql='UPDATE citas SET paciente_id=%s,medico_id=%s,consultorio=%s,motivo=%s,fecha=%s,hora=%s,observaciones=%s WHERE id=%s'
+
+            cursor.execute(sql,(paciente_seleccionado,medico_seleccionado,consultorio_seleccionado,motivo,fecha,hora,observaciones,id))
+            conn.commit()
+            conn.close()
+            cursor.close()
+
+            flash('Cita Editada Correctamente')
+            return redirect(url_for('admin', id=session['usuario']['id']))
+        elif accion=='eliminar':
+            conn = get_connection()
+            cursor = conn.cursor()
+
+            try:
+                # 1. Eliminar pagos relacionados con la cita
+                cursor.execute("DELETE FROM efectuar_pago WHERE cita_pagada = %s", (id,))
+
+                # 2. Eliminar la cita
+                cursor.execute("DELETE FROM citas WHERE id = %s", (id,))
+
+                conn.commit()
+                flash("Cita eliminada correctamente")
+
+            except Exception as e:
+                conn.rollback()
+                flash("Error al eliminar la cita: " + str(e))
+
+            finally:
+                cursor.close()
+                conn.close()
+
+            return redirect(url_for('admin', id=session['usuario']['id']))
+
+
+    
+    
+    return render_template('gestionar_cita.html',datos_cita=datos_cita,pacientes=pacientes,medicos=medicos,consultorios=consultorios)
 
 
 

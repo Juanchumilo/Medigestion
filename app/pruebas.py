@@ -5,24 +5,27 @@ import bcrypt
 import os
 
 import bcrypt
+
+#====== PACIENTES ========#
 p1='laurita123'
 p2='calitos0422'
 p3='marianatt67'
+p4='joselin'
+p5='juanito'
+p6='estevan'
+
+#====== ADMINS ========#
 a1='robert'
 a2='jhonessy'
+
+#====== MEDICOS ========#
 m1='anita03123'
 m2='luisitocm'
 m3='ruizofia'
 
 
-hash = bcrypt.hashpw(m2.encode(), bcrypt.gensalt())
-lista=[(1,2,3),(4,5,6)]
-conteo=0
-conteo2=-1
-while conteo!=len(lista):
-    conteo+=1
-    for i in lista:
-        print(lista[0+1])
+hash = bcrypt.hashpw(p6.encode(), bcrypt.gensalt())
+
         
 
 print(f'esta es tu contra: {hash.decode()}')
