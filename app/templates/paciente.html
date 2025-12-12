@@ -38,6 +38,18 @@
         </header>
 
 
+        <!--Flash-->
+                {% with messages = get_flashed_messages(category_filter=['editar_datos']) %}
+                    {% if messages %}
+                        <ul class="flash-messages">
+                        {% for message in messages %}
+                            <li>{{ message }}</li>
+                        {% endfor %}
+                        </ul>
+                    {% endif %}
+                {% endwith %}
+
+
         <!--Horarios Médicos-->
         <section class="horario-medicos">
             <h2>Horario Médicos</h2>
@@ -82,7 +94,7 @@
                 <input type="text" id="motivo_cita" name="motivo_cita">
 
                 <!--Flash-->
-                {% with messages = get_flashed_messages() %}
+                {% with messages = get_flashed_messages(category_filter=['cita']) %}
                     {% if messages %}
                         <ul class="flash-messages">
                         {% for message in messages %}

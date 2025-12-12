@@ -38,6 +38,18 @@
         </header>
 
 
+        <!--Flash-->
+            {% with messages = get_flashed_messages(category_filter=['editar_datos']) %}
+                {% if messages %}
+                    <ul class="flash-messages">
+                    {% for message in messages %}
+                        <li>{{ message }}</li>
+                    {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endwith %}
+
+
     <!--Tu horario-->
         <section class="horario-section">
             <form class="horario-form" id="actualizar-horario" action="{{url_for('medico',id=session['usuario']['id'])}}" method="POST">
@@ -125,8 +137,16 @@
                         
                     </tr>
                     {%endfor%}
-                    
             </table>
+            {% with messages = get_flashed_messages(category_filter=['reporte']) %}
+                    {% if messages %}
+                        <ul class="flash-messages">
+                        {% for message in messages %}
+                            <li>{{ message }}</li>
+                        {% endfor %}
+                        </ul>
+                    {% endif %}
+                {% endwith %}
         </section>
     </body>
 

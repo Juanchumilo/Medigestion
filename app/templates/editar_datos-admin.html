@@ -59,7 +59,7 @@
                     <label for="confirm_password">Confirmar contraseña</label>
                     <input type="password" id="confirm_password" placeholder="Confirmar contraseña" required name="confirm_password">
 
-                    {% with messages = get_flashed_messages() %}
+                    {% with messages = get_flashed_messages(category_filter=['datos']) %}
                         {% if messages %}
                             <ul class="flash-messages">
                             {% for message in messages %}

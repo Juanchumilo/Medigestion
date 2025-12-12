@@ -94,7 +94,7 @@
                         <option value="Otro">Otro</option> 
                     </select>
 
-                    {% with messages = get_flashed_messages() %}
+                    {% with messages = get_flashed_messages(category_filter=['datos']) %}
                         {% if messages %}
                             <ul class="flash-messages">
                             {% for message in messages %}

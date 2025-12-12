@@ -65,7 +65,7 @@
                     <label for="documento">Documento</label>
                     <input value="{{medico_datos['documento']}}" type="text" id="documento" placeholder="Documento" required name="documento" pattern="[0-9]{6,10}">
 
-                    {% with messages = get_flashed_messages() %}
+                    {% with messages = get_flashed_messages(category_filter=['datos']) %}
                         {% if messages %}
                             <ul class="flash-messages">
                             {% for message in messages %}

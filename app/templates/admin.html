@@ -38,6 +38,18 @@
         </header>
 
 
+        <!--Flash-->
+            {% with messages = get_flashed_messages(category_filter=['editar_datos']) %}
+                {% if messages %}
+                    <ul class="flash-messages">
+                    {% for message in messages %}
+                        <li>{{ message }}</li>
+                    {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endwith %}
+
+
         <!--Gestión de Usuarios-->
         <section>
             <div class="gestion-usuarios">
@@ -117,7 +129,7 @@
                 {% endif %}<br>
             </div>
             <!--Flashes-->
-            {% with messages = get_flashed_messages() %}
+            {% with messages = get_flashed_messages(category_filter=['usuario']) %}
                 {% if messages %}
                     <ul class="flash-messages">
                     {% for message in messages %}
@@ -206,31 +218,35 @@
         <!--Gestionar Sistema-->
         <section>
             <h2>Gestión del Sistema</h2>
-            <form>
-                <label for="config-usuarios">Número máximo de usuarios:</label>
-                <input type="number" id="config-usuarios" name="config-usuarios" min="1" max="1000" value="500">
+            <form action="{{url_for('admin', id=session['usuario']['id'])}}" method="POST">
+                <label for="max_usuarios">Número máximo de usuarios:</label>
+                <input type="number" id="max_usuarios" name="max_usuarios" min="1" max="1000" value="{{config['max_usuarios']}}">
 
-                <label for="config-citas">Número máximo de citas diarias:</label>
-                <input type="number" id="config-citas" name="config-citas" min="1" max="500" value="200">
+                <label for="max_citas_diarias">Número máximo de citas diarias:</label>
+                <input type="number" id="max_citas_diarias" name="max_citas_diarias" min="1" max="500" value="{{config['max_citas_diarias']}}">
 
-                <label for="config-horarios">Horario de atención:</label>
-                <select id="config-horarios" name="config-horarios">
-                    <option value="8-16">8 a.m - 4 p.m</option>
-                    <option value="9-17">9 a.m - 5 p.m</option>
-                    <option value="10-18">10 a.m - 6 p.m</option>
+                <label for="notificaciones">Notificaciones por correo:</label>
+                <select name="notificaciones" id="notificaciones" class="form-select">
+                    <option value="1" {% if config.notificaciones == 1 %}selected{% endif %}>Sí</option>
+                    <option value="0" {% if config.notificaciones == 0 %}selected{% endif %}>No</option>
                 </select>
 
-                <label for="config-notificaciones">Notificaciones por correo:</label>
-                <select id="config-notificaciones" name="config-notificaciones">
-                    <option value="si">Sí</option>
-                    <option value="no">No</option>
-                </select>
 
                 <div class="botones-gestion">
                     <button type="submit">Guardar Cambios</button>
                     <button type="reset">Restablecer Valores</button>
                 </div>
             </form>
+            <!--Flashes-->
+            {% with messages = get_flashed_messages(category_filter=['sistema']) %}
+                {% if messages %}
+                    <ul class="flash-messages">
+                    {% for message in messages %}
+                        <li>{{ message }}</li>
+                    {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endwith %}
         </section>
     </body>
 
