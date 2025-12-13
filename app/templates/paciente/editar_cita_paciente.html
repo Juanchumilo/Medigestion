@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+        <meta charset="UTF-8">
+        <title>Paciente ~ Cita - MediGestión</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}">
+        <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/icon logo.png') }}">
+    </head>
+
+    
+    <body>
+        <!--Barra de navegación -->
+        <div>
+            <nav>
+                <ul>
+                    <li><a href="{{url_for('index')}}">Inicio</a></li>
+                    <li><a href="{{url_for('ingresar')}}">Ingresar</a></li>
+                    <li><a href="{{url_for('registrarse')}}">Registrarse</a></li>
+                </ul>
+            </nav>
+        </div>
+
+
+        <!--Menu de Usuario-->
+        <header>
+            <div class="logo-usuario">
+                <a href="{{url_for('index')}}"><img src="{{ url_for('static', filename='img/medigestion logo_sf.png') }}" alt="Logo de MediGestión"></a>
+                <div class="usuario-menu">
+                    <span>Usuario: {{session['usuario']['nombre']}} {{session['usuario']['apellido']}}</span>
+                    <select onchange="location = this.value;">
+                        <option value="">Opciones</option>
+                        <option value="/editar_datos/paciente/{{session['usuario']['id']}}">Editar mis datos</option>
+                        <option value="/atencion_cliente">Atencion al Cliente</option>
+                        <option value="{{ url_for('logout') }}">Cerrar sesión</option>
+                    </select>
+                </div>
+            </div>
+        </header>
+
+
+
+        <!--Editar Cita Médica-->
+        <section class="reportes-citas">
+            <h2>Editar Cita Médica</h2>
+            <form method="POST" action="{{ url_for('editar_cita_paciente', id=datos_cita['id']) }}">
+                <h3>Codigo de la Cita:  {{datos_cita['id']}}</h3>
+
+                <label for="fecha">Fecha de la Cita</label>
+                <input type="date" id="fecha" name="fecha" min="{{hoy}}" value="{{datos_cita['fecha']}}" required>
+
+                <label for="hora">Hora de la Cita</label>
+                <input type="time" id="hora" name="hora" value="{{datos_cita['hora']}}" required>
+
+                <label for="motivo">Motivo de la Cita</label>
+                <input type="text" id="motivo" name="motivo" value="{{datos_cita['motivo']}}" required>
+
+                <div class="botones-citas">
+                    <button type="submit" name="accion" value="editar">Editar</button>
+                    <button type="submit" name="accion" value="eliminar">Eliminar Cita</button>
+                </div>
+            </form>
+        </section>
+    </body>
+
+
+        <!--Pie de página-->
+    <footer>
+        <p>&copy; 2024 MediGestión. Todos los derechos reservados.</p>
+        <p>Juan Camilo Bernal</p>
+    </footer>
+</html>

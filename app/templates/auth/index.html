@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}">
+        <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/icon logo.png') }}">
+        <title>MediGestión</title>
+    </head>
+
+    
+    <body class="index_bd">
+        <!--Barra de navegación -->
+        <div>
+            <nav>
+                <a href="{{url_for('index')}}"><img src="{{url_for('static',filename='img/medigestion logo_sf.png')}}" alt="Logo de MediGestión" title="Logo de MediGestión" id="img_1"></a>
+                <ul>
+                    <li><a href="{{url_for('index')}}">Inicio</a></li>
+                    <li><a href="{{url_for('ingresar')}}">Ingresar</a></li>
+                    <li><a href="{{url_for('registrarse')}}">Registrarse</a></li>
+                </ul>
+            </nav>
+        </div>
+
+        <div>
+            <h2>Bienvenido a MediGestión</h2>
+        </div>
+        
+        <!--Parte central de la pagina-->
+        <div class="sect_central">
+        
+        
+            <h1>¡Gestiona tus citas y pacientes de manera fácil y rápida!</h1>
+            <p>Bienvenido a MediGestión. La plataforma diseñada para facilitar la administración de citas médicas de manera rápida, segura y accesible.
+            <br>Nuestro objetivo es mejorar la experiencia de pacientes, médicos y administradores, brindando un espacio confiable donde agendar, gestionar y realizar seguimientos de consultas en línea.</p>
+        
+            <div class="index">
+                <button><a href="{{url_for('registrarse')}}">Registrate para agendar todas tus citas médicas</a></button>
+                <button><a href="{{url_for('ingresar')}}">Inicia sesión si ya tienes una cuenta</a></button>
+            </div>
+
+            <h3>MediGestión es mejor porque optimiza el tiempo, centraliza la información médica y mejora la atención al paciente con una gestión moderna y eficiente.</h3>
+            <img id="img_2" src="{{ url_for('static', filename='img/medigestion logo_sf.png') }}" alt="Logo de MediGestión" title="Logo de MediGestión">
+
+            <div class="index">
+                <button><a href="{{url_for('atencion_cliente')}}">¿Tienes algun inconveniete?</a></button>
+            </div>
+
+        </div>
+    </body>
+
+
+    <!-- Pie de pagina -->
+    <footer>
+        <p>© 2024 MediGestión. Todos los derechos reservados.</p>  
+        <p>Juan Camilo Bernal Baquero</p>
+    </footer>
+</html>

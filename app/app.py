@@ -18,12 +18,12 @@ hoy=date.today().isoformat()
 app=Flask(__name__)
 app.secret_key = os.urandom(24)
 
-########################################################    PAGINAS PRIMARIAS    ###########################################
+########################################################    PAGINAS AUTH    ########################################################
 
 #----> Index 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('auth/index.html')
 
 
 
@@ -101,21 +101,53 @@ def ingresar():
         cursor.close()
         conn.close()
 
-    return render_template('ingresar.html')
+    return render_template('auth/ingresar.html')
 
 
 
 #----> Registrarse
-@app.route('/registrarse')
+@app.route('/registrarse', methods=['GET','POST'])
 def registrarse():
-    return render_template('registrarse.html')
+    if request.method=='POST':
+        if request.form['password']==request.form['confirm_password']:
+            nombre=request.form['name'].strip().upper()
+            apellido=request.form['last_name'].strip().upper()
+            email=request.form['email']
+            fecha_nacimiento=request.form['birthdate']
+            telefono=request.form['phone']
+            tipo_documento=request.form['tipo-documento']
+            documento=request.form['documento']
+            rh=request.form['rh']
+            genero=request.form['genero']
+            password=bcrypt.hashpw(request.form['password'].encode(), bcrypt.gensalt())
+
+            conn=get_connection()
+            cursor=conn.cursor()
+            try:
+                cursor.execute('INSERT INTO pacientes (nombre,apellido,email,fecha_nacimiento,telefono,tipo_documento,documento,rh,genero,password) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',(nombre,apellido,email,fecha_nacimiento,telefono,tipo_documento,documento,rh,genero,password))
+                conn.commit()
+
+            except pymysql.err.IntegrityError as e:
+                if "Duplicate entry" in str(e):
+                    flash("El teléfono ya está registrado. Intenta con otro.", "error")
+                    return redirect(url_for("registerw  "))
+            finally:
+                conn.close()
+                cursor.close()
+            flash('Usuario registrado correctamente')
+            return redirect(url_for('ingresar'))
+        else:
+            flash('Las contraseñas no coinciden')
+    return render_template('auth/registrarse.html')
 
 
 
 #----> Forgot Password 
 @app.route('/forgotpassword')
 def forgotpassword():
-    return render_template('forgotpassword.html')
+    return render_template('auth/forgotpassword.html')
+
+
 
 #--------> Logout
 @app.route('/logout')
@@ -124,7 +156,7 @@ def logout():
     return redirect('/')
 
 
-#########################################################    PAGINAS USUARIOS   #################################################
+########################################################    PAGINAS USUARIOS   ########################################################
 
 #Paciente ===================================================================>
 @app.route('/paciente/<int:id>', methods=['GET','POST'])
@@ -143,7 +175,6 @@ def paciente(id):
     conn.close()
     cursor.close()
 
-
     #Ejecutar el Buscar despues del POST
     codigo = request.args.get("codigo")  # viene de la búsqueda
     cita_datos = None
@@ -152,10 +183,14 @@ def paciente(id):
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM citas WHERE id = %s", (codigo,))
         cita_datos = cursor.fetchone()
-        cursor.close()
-        conn.close()
+        if session['usuario']['id']==cita_datos['paciente_id']:
+            cursor.close()
+            conn.close()
+        
+            return render_template("paciente/paciente.html", cita_datos=cita_datos,session=session)
+        else:
+            flash('No tiene una cita registrada a su nombre con ese Código','cita')
 
-        return render_template("paciente.html", cita_datos=cita_datos,session=session)
     
     #Form Gestion de Citas
     if request.method == 'POST': 
@@ -177,11 +212,12 @@ def paciente(id):
             cursor=get_connection().cursor()
             fecha_str = request.form["fecha"]
             cursor.execute('SELECT COUNT(*) FROM citas WHERE fecha=%s',(fecha_str))
-            citas_diarias= cursor.fetchall()
+            citas_diarias= cursor.fetchall()[0]
             cursor.close()
-            if citas_diarias < fun_ad.config():
+
+            if len(citas_diarias) < len(fun_ad.config()):
                 hora_str = request.form["hora"]
-                motivo = request.form["motivo_cita"]
+                motivo = request.form["motivo_cita"].capitalize
 
                 if fecha_str and hora_str and motivo:
 
@@ -205,12 +241,14 @@ def paciente(id):
                     JOIN horario_dias hd ON hd.medico_id = m.id
                     WHERE hd.dia_semana = %s
                     """
+                    conn=get_connection()
+                    cursor=conn.cursor()
                     cursor.execute(sql_medicos, (dia_semana,))
                     medicos = cursor.fetchall()
+                    cursor.close(); conn.close()
 
                     if not medicos:
                         flash("No hay médicos que trabajen ese día",'cita')
-                        cursor.close(); conn.close()
                         return redirect(url_for('paciente', id=id))
 
                     # excluir médicos ya ocupados en ESA fecha y hora 
@@ -218,26 +256,30 @@ def paciente(id):
                     SELECT medico_id FROM citas
                     WHERE fecha = %s AND hora = %s
                     """
+                    conn=get_connection()
+                    cursor=conn.cursor()
                     cursor.execute(sql_ocupados, (fecha_str, hora_str))
                     ocupados_raw = cursor.fetchall()
+                    cursor.close(); conn.close()
                     ocupados_ids = {r['medico_id'] for r in ocupados_raw}  # set de ids ocupados
 
                     disponibles = [m for m in medicos if m['id'] not in ocupados_ids]
 
                     if not disponibles:
                         flash("Ese día/hora no quedan médicos disponibles",'cita')
-                        cursor.close()
-                        conn.close()
                         return redirect(url_for('paciente', id=id))
 
                     # Elegir aleatoriamente uno entre los medicos disponibles
                     medico_elegido = random.choice(disponibles)
 
                     #Crear cita (el consultorio sera establecido de manera aleatoria tambien)
+                    conn=get_connection()
+                    cursor=conn.cursor()
                     cursor.execute("INSERT INTO citas (paciente_id, fecha,hora, motivo,consultorio,medico_id) VALUES (%s, %s, %s, %s, %s,%s) ", (id,fecha_str, hora_str, motivo,random.randint(1,3),medico_elegido['id']))
                     conn.commit()
                     conn.close()
                     cursor.close()
+
 
                     conn=get_connection()
                     cursor=conn.cursor()
@@ -249,11 +291,9 @@ def paciente(id):
                         AND medico_id=%s
                     """, (id, hora_str, motivo, medico_elegido['id']))
 
-                    cita_creada=cursor.fetchall()
+                    session['cita_en_proceso']=cursor.fetchone()
                     conn.close()
                     cursor.close()
-
-                    session['cita_en_proceso'] = cita_creada[0]
 
                     return redirect(url_for('efectuarpago', id=id))
                 else:
@@ -262,7 +302,7 @@ def paciente(id):
                 flash('Se alcanzó el número máximo de citas diarias, Por favor escoga otra fecha para la cita','cita')
                 return redirect(url_for('paciente', id=session['usuario']['id']))
 
-    return render_template("paciente.html", horarios=horarios, hoy=hoy)
+    return render_template("paciente/paciente.html", horarios=horarios, hoy=hoy)
 
 
 
@@ -324,7 +364,7 @@ def medico(id):
     conn.close()
 
 
-    return render_template("medico.html",horario=horario,cita_detalles=cita_detalles)
+    return render_template("medico/medico.html",horario=horario,cita_detalles=cita_detalles)
 
 
 
@@ -456,7 +496,7 @@ def admin(id):
         flash('Sistema Editado correctamente','sistema')
         return redirect(url_for('admin',id=session['usuario']['id']))
 
-    return render_template("""admin.html""",
+    return render_template("""admin/admin.html""",
     horarios=horarios,
     pacientes=pacientes,
     medicos=medicos,
@@ -472,7 +512,7 @@ def admin(id):
 
 
 
-####################################################    PAGINAS COMPLEMENTARIAS   #######################################
+########################################################    PAGINAS COMPLEMENTARIAS   ########################################################
 
 
 ################===PACIENTE===################
@@ -497,20 +537,18 @@ def editar_datos(id):
         cursor.close()
         conn.close()
 
-        return render_template("editar_datos-paciente.html", paciente_datos=paciente_datos,hoy=hoy)
+        return render_template("paciente/editar_datos-paciente.html", paciente_datos=paciente_datos,hoy=hoy)
     
-    
-    pass1=request.form['password']
-    pass2=request.form['confirm_password']
     if request.method=='POST':
-        if pass1!=pass2:
+        if request.form['password']!=request.form['confirm_password']:
             flash('Las contraseñas no coinciden','datos')
             cursor.close()
             conn.close()
             return redirect(f'/editar_datos/paciente/{id}')
             
 
-        data=[request.form['name'],request.form['last_name'],request.form['tipo_documento'],request.form['documento'],request.form['birthdate'],request.form['genero'],request.form['phone'],request.form['email'],request.form['rh'],bcrypt.hashpw(request.form['password'].encode(), bcrypt.gensalt())]
+        #Editar Datos
+        data=[request.form['nombre'].strip().upper(),request.form['apellido'].strip().upper(),request.form['tipo_documento'],request.form['documento'],request.form['birthdate'],request.form['genero'],request.form['phone'],request.form['email'],request.form['rh'],bcrypt.hashpw(request.form['password'].encode(), bcrypt.gensalt())]
 
         cursor.execute("UPDATE pacientes SET nombre=%s,apellido=%s,tipo_documento=%s,documento=%s,fecha_nacimiento=%s,genero=%s,telefono=%s,email=%s,rh=%s,password=%s WHERE id=%s",(data[0],data[1],data[2],data[3],data[4],data[5],data[6],data[7],data[8],data[9],id))
         conn.commit()
@@ -544,8 +582,7 @@ def editar_cita_paciente(id):
     if request.method == 'POST':
         fecha= (request.form['fecha'].replace("/", "-"))
         hora = request.form['hora']
-        motivo = request.form['motivo']
-        estado = request.form['estado']
+        motivo = request.form['motivo'].capitalize
         accion=request.form['accion']
         
 
@@ -584,7 +621,7 @@ def editar_cita_paciente(id):
 
             flash('Cita eliminada correctamente','cita')
             return redirect(url_for('paciente', id=session['usuario']['id']))
-    return render_template('editar_cita_paciente.html',datos_cita=datos_cita, hoy=hoy)
+    return render_template('paciente/editar_cita_paciente.html',datos_cita=datos_cita, hoy=hoy)
 
 #-------> Efectuar Pago-Paciente <----------#
 @app.route('/paciente/pago/<int:id>', methods=['GET','POST'])
@@ -596,25 +633,25 @@ def efectuarpago(id):
     if session['usuario']['id'] != id:
         return "Acceso no autorizado", 403
     
-    cita = session['cita_en_proceso']['id']
+    cita = session['cita_en_proceso']
     
     if request.method=='POST':
-        cita = session['cita_en_proceso']['id']
+        cita = session['cita_en_proceso']
         email=request.form['email']
         metodo_pago=request.form['metodo-pago']
         conn=get_connection()
         cursor=conn.cursor()
         
-        cursor.execute("INSERT INTO efectuar_pago (email,metodo_pago,paciente,cita_pagada) VALUES (%s,%s,%s,%s)",(email,metodo_pago,id,cita))
+        cursor.execute("INSERT INTO efectuar_pago (email,metodo_pago,paciente,cita_pagada) VALUES (%s,%s,%s,%s)",(email,metodo_pago,id,cita['id']))
         conn.commit()
         conn.close()
         cursor.close()
 
         flash('Pago y Cita hechos correctamente','cita')
-        flash(f'El codigo de su Cita creada es: {cita}','cita')
+        flash(f'El codigo de su Cita creada es: {cita['id']}','cita')
         return redirect(url_for('paciente', id=id))
     
-    return render_template('realizar_pago.html', cita=cita)
+    return render_template('otros/realizar_pago.html', cita=cita)
 
 
 
@@ -641,19 +678,16 @@ def editar_datos_medico(id):
         cursor.close()
         conn.close()
 
-        return render_template("editar_datos-medico.html", medico_datos=medico_datos)
+        return render_template("medico/editar_datos-medico.html", medico_datos=medico_datos)
     
-    
-    pass1=request.form['password']
-    pass2=request.form['confirm_password']
     if request.method=='POST':
-        if pass1!=pass2:
+        if request.form['password']!=request.form['confirm_password']:
             flash('Las contraseñas no coinciden','datos')
             cursor.close()
             conn.close()
             return redirect(f'editar_datos/medico/{id}')
         
-        data=[request.form['name'],request.form['last_name'],request.form['phone'],request.form['email'],bcrypt.hashpw(request.form['password'].encode(), bcrypt.gensalt()),request.form['documento']]
+        data=[request.form['name'].strip().upper(),request.form['last_name'].strip().upper(),request.form['phone'],request.form['email'],bcrypt.hashpw(request.form['password'].encode(), bcrypt.gensalt()),request.form['documento']]
 
         cursor.execute("UPDATE medicos SET nombre=%s,apellido=%s,telefono=%s,email=%s,password=%s,documento=%s WHERE id=%s",(data[0],data[1],data[2],data[3],data[4],data[5],id))
         conn.commit()
@@ -692,7 +726,7 @@ def medico_reporte(id):
 
 
     if request.method=='POST':
-        motivo=request.form['motivo-cita']
+        motivo=request.form['motivo-cita'].capitalize
         observaciones=request.form['observaciones']
         estado='Completada'
 
@@ -707,7 +741,7 @@ def medico_reporte(id):
         flash('Reporte generado con exito','reporte')
         return redirect(url_for('medico',id=cita['medico_id']))
 
-    return render_template('reportes.html', cita=cita)
+    return render_template('medico/reportes.html', cita=cita)
 
 
 
@@ -734,20 +768,17 @@ def editar_datos_admin(id):
         cursor.close()
         conn.close()
 
-        return render_template("editar_datos-admin.html", admin_datos=admin_datos)
+        return render_template("admin/editar_datos-admin.html", admin_datos=admin_datos)
 
-
-    pass1=request.form['password']
-    pass2=request.form['confirm_password']
     if request.method=='POST':
-        if pass1!=pass2:
+        if request.form['password']!=request.form['confirm_password']:
             flash('Las contraseñas no coinciden','datos')
             cursor.close()
             conn.close()
             return redirect(f'/editar_datos/admin/{id}')
         
 
-        data=[request.form['name'],request.form['last_name'],request.form['email'],bcrypt.hashpw(request.form['password'].encode(), bcrypt.gensalt())]
+        data=[request.form['name'].strip().upper(),request.form['last_name'].strip().upper(),request.form['email'],bcrypt.hashpw(request.form['password'].encode(), bcrypt.gensalt())]
 
         cursor.execute("UPDATE admintb SET nombre=%s,apellido=%s,email=%s,password=%s WHERE id=%s",(data[0],data[1],data[2],data[3],id))
         conn.commit()
@@ -772,8 +803,8 @@ def gestion_usuarios_paciente(id):
 
     if request.method=='POST':
         if request.form['password'] == request.form['confirm_password']:
-            nombre=request.form['nombre']
-            apellido=request.form['apellido']
+            nombre=request.form['nombre'].strip().upper()
+            apellido=request.form['apellido'].strip().upper()
             tipo_documento=request.form['tipo_documento']
             documento=request.form['documento']
             birthdate=request.form['birthdate']
@@ -800,7 +831,7 @@ def gestion_usuarios_paciente(id):
             return redirect(url_for('gestion_usuario_paciente',id=id))
 
 
-    return render_template('gestion_usuarios_paciente.html',datos=datos,hoy=hoy)
+    return render_template('admin/gestion_usuarios_paciente.html',datos=datos,hoy=hoy)
 
 #-------> Gestion de Usuarios_medico-Admin <----------#
 @app.route('/admin/gestion-usuarios/medico/<int:id>', methods=['GET','POST'])
@@ -818,8 +849,8 @@ def gestion_usuarios_medico(id):
 
     if request.method=='POST':
         if request.form['password'] == request.form['confirm_password']:
-            nombre=request.form['nombre']
-            apellido=request.form['apellido']
+            nombre=request.form['nombre'].strip().upper()
+            apellido=request.form['apellido'].strip().upper()
             documento=request.form['documento']
             telefono=request.form['telefono']
             email=request.form['email']
@@ -842,7 +873,7 @@ def gestion_usuarios_medico(id):
             return redirect(url_for('gestion_usuario_paciente',id=id))
 
 
-    return render_template('gestion_usuarios_medico.html',datos=datos,hoy=hoy)
+    return render_template('admin/gestion_usuarios_medico.html',datos=datos,hoy=hoy)
 
 #-------> Gestion de Citas-Admin <----------#
 @app.route('/admin/gestionar-cita/<int:id>', methods=['GET','POST'])
@@ -901,7 +932,7 @@ def gestionar_cita(id):
             consultorio_seleccionado=request.form['consultorio_seleccionado']
             fecha=request.form['fecha']
             hora=request.form['hora']
-            motivo=request.form['motivo']
+            motivo=request.form['motivo'].capitalize
             observaciones=request.form['observaciones']
 
             conn=get_connection()
@@ -943,7 +974,7 @@ def gestionar_cita(id):
 
     
     
-    return render_template('gestionar_cita.html',datos_cita=datos_cita,pacientes=pacientes,medicos=medicos,consultorios=consultorios)
+    return render_template('admin/gestionar_cita.html',datos_cita=datos_cita,pacientes=pacientes,medicos=medicos,consultorios=consultorios)
 
 
 
@@ -953,10 +984,10 @@ def gestionar_cita(id):
 @app.route('/atencion_cliente',methods=('GET','POST'))
 def atencion_cliente():
     if request.method=='POST':
-        nombre = request.form['nombre']
+        nombre = request.form['nombre'].strip().upper()
         correo = request.form['email']
         motivo = request.form['motivo']
-        mensaje = request.form['mensaje']
+        mensaje = request.form['mensaje'].capitalize
 
         # Crear contenido del correo
         asunto = f"Nuevo mensaje de soporte - {motivo}"
@@ -990,12 +1021,12 @@ def atencion_cliente():
             print("Error enviando correo:", e)
             flash("Hubo un error enviando el mensaje.")
 
-    return render_template('atencion_cliente.html')
+    return render_template('otros/atencion_cliente.html')
 
 #--------> Error 404 <----------#
 @app.errorhandler(404)
 def page_not_found(e):
-    return render_template("404.html"), 404
+    return render_template("otros/404.html"), 404
 
 
 if __name__=='__main__':

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+        <meta charset="UTF-8">
+        <title>Medico - MediGestión</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}">
+        <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/icon logo.png') }}">
+    </head>
+
+    
+    <body>
+        <!--Barra de navegación -->
+        <div>
+            <nav>
+                <ul>
+                    <li><a href="{{url_for('index')}}">Inicio</a></li>
+                    <li><a href="{{url_for('ingresar')}}">Ingresar</a></li>
+                    <li><a href="{{url_for('registrarse')}}">Registrarse</a></li>
+                </ul>
+            </nav>
+        </div>
+
+
+        <!--Menu de Usuario-->
+        <header>
+            <div class="logo-usuario">
+                <a href="{{url_for('index')}}"><img src="{{ url_for('static', filename='img/medigestion logo_sf.png') }}" alt="Logo de MediGestión"></a>
+                <div class="usuario-menu">
+                    <span>Usuario: {{session['usuario']['nombre']}} {{session['usuario']['apellido']}}</span>
+                    <select onchange="location = this.value;">
+                        <option value="">Opciones</option>
+                        <option value="/editar_datos/medico/{{session['usuario']['id']}}">Editar mis datos</option>
+                        <option value="/atencion_cliente">Atencion al Cliente</option>
+                        <option value="{{ url_for('logout') }}">Cerrar sesión</option>
+                    </select>
+                </div>
+            </div>
+        </header>
+
+
+        <!--Flash-->
+            {% with messages = get_flashed_messages(category_filter=['editar_datos']) %}
+                {% if messages %}
+                    <ul class="flash-messages">
+                    {% for message in messages %}
+                        <li>{{ message }}</li>
+                    {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endwith %}
+
+
+    <!--Tu horario-->
+        <section class="horario-section">
+            <form class="horario-form" id="actualizar-horario" action="{{url_for('medico',id=session['usuario']['id'])}}" method="POST">
+                <h2>Tu Horario</h2>
+                <table class="horario-tabla">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Hora Ingreso</th>
+                            <th>Hora Salida</th>
+                            <th>Horario</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <strong>{{session['usuario']['nombre']}} {{session['usuario']['apellido']}}</strong>
+                            </td>
+                            <td>
+                                <input type="number" min="1" max="12" value="{{horario['hora_ingreso']}}" name="hora_ingreso">
+                                <select name="hora_ingreso_tp">
+                                    <option value="AM" {{ "selected" if horario['hora_ingreso_tp'] == "AM" else "" }}>AM</option>
+                                    <option value="PM" {{ "selected" if horario['hora_ingreso_tp'] == "PM" else "" }}>PM</option>
+                                </select>
+                            </td>
+                            <td>
+                                <input type="number" min="1" max="12" value="{{horario['hora_salida']}}" name="hora_salida">
+                                <select name="hora_salida_tp">
+                                    <option value="AM" {{ "selected" if horario['hora_salida_tp'] == "AM" else "" }}>AM</option>
+                                    <option value="PM" {{ "selected" if horario['hora_salida_tp'] == "PM" else "" }}>PM</option>
+                                </select>
+                            </td>
+                            <td>
+                                <select name="horario">
+                                    <option value="Lun-Vier">Lun-Vier</option>
+                                    <option value="Mier-Dom">Mier-Dom</option>
+                                </select>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                        <ul class="flash-messages">
+                        {% for message in messages %}
+                            <li>{{ message }}</li>
+                        {% endfor %}
+                        </ul>
+                    {% endif %}
+                {% endwith %}
+            </form><br>
+            <!--Boton horario-->
+            <div class="btn-actualizar-contenedor">
+                <button type="submit" class="btn-actualizar" form="actualizar-horario">Actualizar</button>
+            </div>
+        </section>
+
+
+    <!--Reportes Citas-->
+        <section>
+            <h2>Gestionar Reportes</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nombre Paciente</th>
+                        <th>Estado</th>
+                        <th id="th-h">Hora</th>
+                        <th>Consultorio</th>
+                        <th>Fecha<br>(YY/MM/DD)</th>
+                        <th>Motivo de la Cita</th>
+                        <th>Reporte</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {%for i in cita_detalles%}
+                    <tr>
+                        <td>{{i['paciente_nombre']}} {{i['paciente_apellido']}}</td>
+                        <td>{{i['estado']}}</td>
+                        <td>{{i['hora']}}</td>
+                        <td>{{i['consultorio']}}</td>
+                        <td>{{i['fecha']}}</td>
+                        <td>{{i['motivo']}}</td>
+                        
+                        <td>{%if i['estado']=='Programada'%}<button><a href="{{url_for('medico_reporte', id=i['id'])}}">Generar</a></button>{%endif%}</td>
+                        
+                    </tr>
+                    {%endfor%}
+            </table>
+            {% with messages = get_flashed_messages(category_filter=['reporte']) %}
+                    {% if messages %}
+                        <ul class="flash-messages">
+                        {% for message in messages %}
+                            <li>{{ message }}</li>
+                        {% endfor %}
+                        </ul>
+                    {% endif %}
+                {% endwith %}
+        </section>
+    </body>
+
+    <!--Pie de pagina-->
+    <footer>
+        <p>&copy; 2024 MediGestión. Todos los derechos reservados.</p>
+        <p>Juan Camilo Bernal</p>
+    </footer>
+</html>
