@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}">
+        <title>MediGestión</title>
+        <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/icon logo.png') }}">
+    </head>
+
+    
+    <body>
+        <!--Barra de navegación -->
+        <div>
+            <nav>
+                <a href="{{url_for('index')}}"><img src="{{url_for('static',filename='img/medigestion logo_sf.png')}}" alt="Logo de MediGestión" title="Logo de MediGestión" id="img_1"></a>
+                <ul>
+                    <li><a href="{{url_for('index')}}">Inicio</a></li>
+                    <li><a href="{{url_for('ingresar')}}">Ingresar</a></li>
+                    <li><a href="{{url_for('registrarse')}}">Registrarse</a></li>
+                </ul>
+            </nav>
+        </div>
+
+
+        <!--Parte Central-->
+        <div style="font-family: Constantia; max-width: 600px; margin: auto; padding: 20px;">
+
+            <h1 style="text-align: center;">Centro de Ayuda – MediGestión</h1>
+            <p style="text-align: center;">¿Necesitas asistencia? Estamos aquí para ayudarte.</p>
+
+            <hr>
+
+            <h2 id="poli_privacidad">Contacto Directo</h2>
+            <p><strong>Correo:</strong> medigestioninfo@gmail.com</p>
+            <p><strong>Teléfono / WhatsApp:</strong> +57 300 000 0000</p>
+            <p><strong>Horario de Atenci:</strong> Lunes a Viernes – 8:00 AM a 6:00 PM</p>
+
+            <hr>
+
+            <h2>Envíanos un mensaje</h2>
+            <form action="{{ url_for('atencion_cliente') }}" method="POST">
+
+                <label>Nombre</label>
+                <input type="text" name="nombre" required style="width:100%; padding:8px; margin-bottom:10px;">
+
+                <label>Correo</label>
+                <input type="email" name="email" required style="width:100%; padding:8px; margin-bottom:10px;">
+
+                <label>Motivo</label>
+                <select name="motivo" required style="width:100%; padding:8px; margin-bottom:10px;">
+                    <option value="">Seleccione...</option>
+                    <option value="problema_tecnico">Problema técnico</option>
+                    <option value="acceso">No puedo iniciar sesión</option>
+                    <option value="errores_citas">Error con las citas</option>
+                    <option value="otro">Otro</option>
+                </select>
+
+                <label>Mensaje</label>
+                <textarea name="mensaje" rows="4" required style="width:100%; padding:8px; margin-bottom:10px;"></textarea>
+
+                <button type="submit" style="padding:10px 15px; cursor:pointer; color: white;">Enviar mensaje</button>
+            </form>
+            <br>
+            <hr>
+
+            <h2 id="poli_privacidad">Política de privacidad</h2>
+            <p>Tu información será utilizada únicamente para responder a tus solicitudes de soporte técnico.</p>
+
+        </div>
+    </body>
+
+
+    <!--Pie de pagina-->
+    <footer>
+        <p>© 2024 MediGestión. Todos los derechos reservados.</p>  
+        <p>Juan Camilo Bernal Baquero</p>
+    </footer>
+</html>
