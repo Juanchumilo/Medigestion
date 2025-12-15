@@ -7,11 +7,11 @@ El proyecto consiste en una app web que tenga como funcion la gestion de citas m
 Medigestion esta hecho con 3 lenguajes: HTML,CSS y python-flask.
 Las dependencias que deben ser descargadas son:
 
-Python
-Flask
-bcrypt
-datetime
------------------------
+-- Python
+-- Flask
+-- bcrypt
+-- datetime
+
 Todas estas dependencias deben ser instaladas en un entorno virtual preferiblemente, como sugerencia personal recomiendo venv, ya que viene instalado con python.
 
 ## 🚀 Instalación
@@ -23,9 +23,9 @@ cd Medigestion
 
 Despues de clonar el repo, se debe si o si eliminar las carpetas:
 
-.vscode
-__pycache__  #Esta esta dentro de la carpeta /app/
--------------
+-- .vscode
+-- __pycache__  #Esta esta dentro de la carpeta /app/
+
 Si no se eliminan podria generar problemas
 
 
