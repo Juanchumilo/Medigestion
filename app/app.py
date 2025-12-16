@@ -1189,7 +1189,25 @@ def gestionar_cita(id):
 
     return render_template('admin/gestionar_cita.html',datos_cita=datos_cita,pacientes=pacientes,medicos=medicos,consultorios=consultorios)
 
+#-------> Creacion de Usuarios-Admin <----------#
+@app.route('/admin/crear-usuario/<int:id>',methods=['GET','POST'])
+def crear_usuario(id):
+    # Verificar sesión
+    if 'usuario' not in session:
+        return redirect('/ingresar')
 
+    if session['usuario']['id'] != id:
+        return "Acceso no autorizado", 403
+    tipo_usuario=''
+    
+    if request.method=='POST':
+        if request.form['tipo_usuario']=='pacientes':
+            nombre=request.form['nombre']
+            apellido=request.form['apellido']
+            
+
+    
+    return render_template('admin/crear_usuario.html',tipo_usuario=tipo_usuario,hoy=hoy)
 
 
 ################===ADICIONALES===################
