@@ -24,7 +24,8 @@ cd Medigestion
 Despues de clonar el repo, se debe si o si eliminar las carpetas:
 
 -- .vscode
--- __pycache__  #Esta esta dentro de la carpeta /app/
+-- __ pycache __  #Esta esta dentro de la carpeta /app/
+
 
 Si no se eliminan podria generar problemas
 
