@@ -58,6 +58,16 @@
                     <button type="submit" name="accion" value="editar">Editar</button>
                     <button type="submit" name="accion" value="eliminar">Eliminar Cita</button>
                 </div>
+
+                {% with messages = get_flashed_messages(category_filter=['error']) %}
+                    {% if messages %}
+                        <ul class="flash-messages">
+                        {% for message in messages %}
+                            <li>{{ message }}</li>
+                        {% endfor %}
+                        </ul>
+                    {% endif %}
+                {% endwith %}
             </form>
         </section>
     </body>

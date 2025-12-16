@@ -75,6 +75,17 @@
                         {% endif %}
                     {% endwith %}
 
+
+                    {% with messages = get_flashed_messages(category_filter=['error']) %}
+                        {% if messages %}
+                            <ul class="flash-messages">
+                            {% for message in messages %}
+                                <li>{{ message }}</li>
+                            {% endfor %}
+                            </ul>
+                        {% endif %}
+                    {% endwith %}
+
                     <button type="submit">Editar</button>
                 </form>
             </div>

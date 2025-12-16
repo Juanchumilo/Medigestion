@@ -128,12 +128,25 @@ def registrarse():
                 conn.commit()
 
             except pymysql.err.IntegrityError as e:
-                if "Duplicate entry" in str(e):
-                    flash("El teléfono ya está registrado. Intenta con otro.", "error")
-                    return redirect(url_for("registerw  "))
+                error_msg = str(e)
+
+                if "pacientes.telefono" in error_msg:
+                    flash("El teléfono ingresado ya está registrado.", "error")
+
+                elif "pacientes.email" in error_msg:
+                    flash("El correo ingresado ya está registrado.", "error")
+
+                elif "pacientes.documento" in error_msg:
+                    flash("El documento ingresado ya está registrado.", "error")
+
+                else:
+                    flash("Ocurrió un error inesperado. Intenta nuevamente.", "error")
+
+                return redirect(url_for("registro"))
+
             finally:
-                conn.close()
                 cursor.close()
+                conn.close()
             flash('Usuario registrado correctamente')
             return redirect(url_for('ingresar'))
         else:
@@ -549,7 +562,30 @@ def editar_datos(id):
 
         #Editar Datos
         data=[request.form['nombre'].strip().upper(),request.form['apellido'].strip().upper(),request.form['tipo_documento'],request.form['documento'],request.form['birthdate'],request.form['genero'],request.form['phone'],request.form['email'],request.form['rh'],bcrypt.hashpw(request.form['password'].encode(), bcrypt.gensalt())]
+        try:
+            cursor.execute("UPDATE pacientes SET nombre=%s,apellido=%s,tipo_documento=%s,documento=%s,fecha_nacimiento=%s,genero=%s,telefono=%s,email=%s,rh=%s,password=%s WHERE id=%s",(data[0],data[1],data[2],data[3],data[4],data[5],data[6],data[7],data[8],data[9],id))
+            conn.commit()
 
+        except pymysql.err.IntegrityError as e:
+            error_msg = str(e)
+
+            if "pacientes.telefono" in error_msg:
+                flash("El teléfono ingresado ya está registrado.", "error")
+
+            elif "pacientes.email" in error_msg:
+                flash("El correo ingresado ya está registrado.", "error")
+
+            elif "pacientes.documento" in error_msg:
+                flash("El documento ingresado ya está registrado.", "error")
+
+            else:
+                flash("Ocurrió un error inesperado. Intenta nuevamente.", "error")
+
+                return redirect(url_for("paciente",id=id))
+
+        finally:
+            cursor.close()
+            conn.close()
         cursor.execute("UPDATE pacientes SET nombre=%s,apellido=%s,tipo_documento=%s,documento=%s,fecha_nacimiento=%s,genero=%s,telefono=%s,email=%s,rh=%s,password=%s WHERE id=%s",(data[0],data[1],data[2],data[3],data[4],data[5],data[6],data[7],data[8],data[9],id))
         conn.commit()
         cursor.close()
@@ -587,15 +623,67 @@ def editar_cita_paciente(id):
         
 
 
+        # 2) convertir la fecha y sacar día de la semana (lunes=0 ... domingo=6)
+        try:
+            fecha_obj = datetime.strptime(fecha, "%Y-%m-%d")
+            dia_semana = fecha_obj.weekday()
+        except Exception as e:
+            flash("Formato de fecha inválido",'error')
+            return redirect(url_for('editar_cita_paciente', id=session['usuario']['id']))
+
 
         # Si la cita sigue programada → actualizar
         if accion == 'editar':
             conn = get_connection()
             cursor = conn.cursor()
-            cursor.execute('UPDATE citas SET fecha=%s, hora=%s, motivo=%s WHERE id=%s',(fecha, hora, motivo, id))
-            conn.commit()
-            cursor.close()
-            conn.close()
+
+            sql_medicos = """
+                    SELECT m.id, m.nombre, m.apellido
+                    FROM medicos m
+                    JOIN horario_dias hd ON hd.medico_id = m.id
+                    WHERE hd.dia_semana = %s
+                    """
+            cursor.execute(sql_medicos, (dia_semana,))
+            medicos = cursor.fetchall()
+            cursor.close(); conn.close()
+
+            if not medicos:
+                flash("No hay médicos que trabajen ese día",'error')
+                return redirect(url_for('editar_cita_paciente', id=session['usuario']['id']))
+
+            # excluir médicos ya ocupados en ESA fecha y hora 
+            sql_ocupados = """
+            SELECT medico_id FROM citas
+            WHERE fecha = %s AND hora = %s
+            """
+            conn=get_connection()
+            cursor=conn.cursor()
+            cursor.execute(sql_ocupados, (fecha_str, hora_str))
+            ocupados_raw = cursor.fetchall()
+            cursor.close(); conn.close()
+            ocupados_ids = {r['medico_id'] for r in ocupados_raw}  # set de ids ocupados
+
+            disponibles = [m for m in medicos if m['id'] not in ocupados_ids]
+
+            if not disponibles:
+                flash("Ese día/hora no quedan médicos disponibles",'error')
+                return redirect(url_for('editar_cita_paciente', id=session['usuario']['id']))
+
+
+
+            # Editar datos de la cita (solo despues de las anteriores confirmaciones)
+            try:
+                cursor.execute('UPDATE citas SET fecha=%s, hora=%s, motivo=%s WHERE id=%s',(fecha, hora, motivo, id))
+                conn.commit()
+
+            except pymysql.err.IntegrityError as e:
+                flash("Ocurrió un error inesperado. Intenta nuevamente.", "error")
+
+                return redirect(url_for("paciente",id=session['usuario']['id']))
+
+            finally:
+                cursor.close()
+                conn.close()
 
         # Si la cita fue cancelada → eliminar
         elif accion == 'eliminar':
@@ -689,10 +777,32 @@ def editar_datos_medico(id):
         
         data=[request.form['name'].strip().upper(),request.form['last_name'].strip().upper(),request.form['phone'],request.form['email'],bcrypt.hashpw(request.form['password'].encode(), bcrypt.gensalt()),request.form['documento']]
 
-        cursor.execute("UPDATE medicos SET nombre=%s,apellido=%s,telefono=%s,email=%s,password=%s,documento=%s WHERE id=%s",(data[0],data[1],data[2],data[3],data[4],data[5],id))
-        conn.commit()
-        cursor.close()
-        conn.close()
+
+        try:
+            cursor.execute("UPDATE medicos SET nombre=%s,apellido=%s,telefono=%s,email=%s,password=%s,documento=%s WHERE id=%s",(data[0],data[1],data[2],data[3],data[4],data[5],id))
+            conn.commit()
+
+        except pymysql.err.IntegrityError as e:
+            error_msg = str(e)
+
+            if "medicos.telefono" in error_msg:
+                flash("El teléfono ingresado ya está registrado.", "error")
+
+            elif "medicos.email" in error_msg:
+                flash("El correo ingresado ya está registrado.", "error")
+
+            elif "medicos.documento" in error_msg:
+                flash("El documento ingresado ya está registrado.", "error")
+
+            else:
+                flash("Ocurrió un error inesperado. Intenta nuevamente.", "error")
+
+            return redirect(url_for("editar_datos_medico",id=id))
+
+        finally:
+            cursor.close()
+            conn.close()
+
 
         # ACTUALIZAR LA SESIÓN 
         session['usuario']['nombre'] = data[0]
@@ -780,9 +890,24 @@ def editar_datos_admin(id):
 
         data=[request.form['name'].strip().upper(),request.form['last_name'].strip().upper(),request.form['email'],bcrypt.hashpw(request.form['password'].encode(), bcrypt.gensalt())]
 
-        cursor.execute("UPDATE admintb SET nombre=%s,apellido=%s,email=%s,password=%s WHERE id=%s",(data[0],data[1],data[2],data[3],id))
-        conn.commit()
-        conn.close()
+        try:
+            cursor.execute("UPDATE admintb SET nombre=%s,apellido=%s,email=%s,password=%s WHERE id=%s",(data[0],data[1],data[2],data[3],id))
+            conn.commit()
+
+        except pymysql.err.IntegrityError as e:
+            error_msg = str(e)
+
+            if "admintb.email" in error_msg:
+                flash("El correo ingresado ya está registrado.", "error")
+
+            else:
+                flash("Ocurrió un error inesperado. Intenta nuevamente.", "error")
+
+            return redirect(url_for("editar_datos_admin",id=id))
+
+        finally:
+            cursor.close()
+            conn.close()
 
         flash('Datos del Usuario editados con éxito','editar_datos')
         return redirect(f'/admin/{id}')
@@ -818,10 +943,31 @@ def gestion_usuarios_paciente(id):
 
             conn=get_connection()
             cursor=conn.cursor()
-            cursor.execute(sql,(nombre,apellido,tipo_documento,documento,birthdate,genero,telefono,email,rh,password,id))
-            conn.commit()
-            conn.close()
-            cursor.close()
+
+            try:
+                cursor.execute(sql,(nombre,apellido,tipo_documento,documento,birthdate,genero,telefono,email,rh,password,id))
+                conn.commit()
+
+            except pymysql.err.IntegrityError as e:
+                error_msg = str(e)
+
+                if "pacientes.telefono" in error_msg:
+                    flash("El teléfono ingresado ya está registrado.", "error")
+
+                elif "pacientes.email" in error_msg:
+                    flash("El correo ingresado ya está registrado.", "error")
+
+                elif "pacientes.documento" in error_msg:
+                    flash("El documento ingresado ya está registrado.", "error")
+
+                else:
+                    flash("Ocurrió un error inesperado. Intenta nuevamente.", "error")
+
+                return redirect(url_for("gestion_usuarios_paciente", id=id))
+
+            finally:
+                cursor.close()
+                conn.close()
 
             flash('Usuario Editado con éxito','usuario')
             return redirect(url_for('admin', id=session['usuario']['id']))
@@ -860,10 +1006,31 @@ def gestion_usuarios_medico(id):
 
             conn=get_connection()
             cursor=conn.cursor()
-            cursor.execute(sql,(nombre,apellido,documento,telefono,email,password,id))
-            conn.commit()
-            conn.close()
-            cursor.close()
+
+            try:
+                cursor.execute(sql,(nombre,apellido,documento,telefono,email,password,id))
+                conn.commit()
+
+            except pymysql.err.IntegrityError as e:
+                error_msg = str(e)
+
+                if "medicos.telefono" in error_msg:
+                    flash("El teléfono ingresado ya está registrado.", "error")
+
+                elif "medicos.email" in error_msg:
+                    flash("El correo ingresado ya está registrado.", "error")
+
+                elif "medicos.documento" in error_msg:
+                    flash("El documento ingresado ya está registrado.", "error")
+
+                else:
+                    flash("Ocurrió un error inesperado. Intenta nuevamente.", "error")
+
+                return redirect(url_for("gestion_usuarios_medico",id=id))
+
+            finally:
+                cursor.close()
+                conn.close()
 
             flash('Usuario Editado con éxito','usuario')
             return redirect(url_for('admin', id=session['usuario']['id']))
@@ -900,7 +1067,7 @@ def gestionar_cita(id):
     conn.close()
     cursor.close()
 
-    #====== Cantidad de Pacientes======#
+    #====== Lista de Pacientes ======#
     conn=get_connection()
     cursor=conn.cursor()
     cursor.execute('SELECT pacientes.nombre,pacientes.apellido,pacientes.id FROM pacientes')
@@ -908,7 +1075,7 @@ def gestionar_cita(id):
     conn.close()
     cursor.close()
 
-    #====== Cantidad de Medicos======#
+    #====== Lista de Medicos ======#
     conn=get_connection()
     cursor=conn.cursor()
     cursor.execute('SELECT medicos.nombre,medicos.apellido,medicos.id FROM medicos')
@@ -916,7 +1083,7 @@ def gestionar_cita(id):
     conn.close()
     cursor.close()
 
-    #====== Cantidad de Consultorios======#
+    #====== Lista de Consultorios ======#
     conn=get_connection()
     cursor=conn.cursor()
     cursor.execute('SELECT consultorio.nombre,consultorio.id FROM consultorio')
@@ -926,24 +1093,73 @@ def gestionar_cita(id):
 
     if request.method=='POST':
         accion = request.form["accion"]
-        if accion=='editar':
+        if accion == 'editar':
             paciente_seleccionado=request.form['paciente_seleccionado']
             medico_seleccionado=request.form['medico_seleccionado']
             consultorio_seleccionado=request.form['consultorio_seleccionado']
-            fecha=request.form['fecha']
+            fecha=(request.form['fecha'].replace("/", "-"))
             hora=request.form['hora']
             motivo=request.form['motivo'].capitalize
             observaciones=request.form['observaciones']
 
+            # 2) convertir la fecha y sacar día de la semana (lunes=0 ... domingo=6)
+            try:
+                fecha_obj = datetime.strptime(fecha, "%Y-%m-%d")
+                dia_semana = fecha_obj.weekday()
+            except Exception as e:
+                flash("Formato de fecha inválido",'error')
+                return redirect(url_for('gestionar_cita', id=id))
+
+            conn = get_connection()
+            cursor = conn.cursor()
+
+            sql_medicos = """
+                    SELECT m.id, m.nombre, m.apellido
+                    FROM medicos m
+                    JOIN horario_dias hd ON hd.medico_id = m.id
+                    WHERE hd.dia_semana = %s
+                    """
+            cursor.execute(sql_medicos, (dia_semana,))
+            medicos = cursor.fetchall()
+            cursor.close(); conn.close()
+
+            if not medicos:
+                flash("No hay médicos que trabajen ese día",'error')
+                return redirect(url_for('gestionar_cita', id=id))
+
+            # excluir médicos ya ocupados en ESA fecha y hora 
+            sql_ocupados = """
+            SELECT medico_id FROM citas
+            WHERE fecha = %s AND hora = %s
+            """
             conn=get_connection()
             cursor=conn.cursor()
+            cursor.execute(sql_ocupados, (fecha_str, hora_str))
+            ocupados_raw = cursor.fetchall()
+            cursor.close(); conn.close()
+            ocupados_ids = {r['medico_id'] for r in ocupados_raw}  # set de ids ocupados
 
-            sql='UPDATE citas SET paciente_id=%s,medico_id=%s,consultorio=%s,motivo=%s,fecha=%s,hora=%s,observaciones=%s WHERE id=%s'
+            disponibles = [m for m in medicos if m['id'] not in ocupados_ids]
 
-            cursor.execute(sql,(paciente_seleccionado,medico_seleccionado,consultorio_seleccionado,motivo,fecha,hora,observaciones,id))
-            conn.commit()
-            conn.close()
-            cursor.close()
+            if not disponibles:
+                flash("Ese día/hora no quedan médicos disponibles",'error')
+                return redirect(url_for('gestionar_cita', id=id))
+            
+
+            # Editar datos de la cita (solo despues de las anteriores confirmaciones)
+            try:
+                sql='UPDATE citas SET paciente_id=%s,medico_id=%s,consultorio=%s,motivo=%s,fecha=%s,hora=%s,observaciones=%s WHERE id=%s'
+                cursor.execute(sql,(paciente_seleccionado,medico_seleccionado,consultorio_seleccionado,motivo,fecha,hora,observaciones,id))
+                conn.commit()
+
+            except pymysql.err.IntegrityError as e:
+
+                flash("Ocurrió un error inesperado. Intenta nuevamente.", "error")
+                return redirect(url_for("gestionar_cita",id=id))
+
+            finally:
+                cursor.close()
+                conn.close()
 
             flash('Cita Editada Correctamente')
             return redirect(url_for('admin', id=session['usuario']['id']))
@@ -971,9 +1187,6 @@ def gestionar_cita(id):
 
             return redirect(url_for('admin', id=session['usuario']['id']))
 
-
-    
-    
     return render_template('admin/gestionar_cita.html',datos_cita=datos_cita,pacientes=pacientes,medicos=medicos,consultorios=consultorios)
 
 

@@ -6,26 +6,44 @@ import os
 
 import bcrypt
 
+
+
+#################### Datos para login Usuarios ####################
+
 #====== PACIENTES ========#
-p1='laurita123'
-p2='calitos0422'
-p3='marianatt67'
-p4='joselin'
-p5='juanito'
-p6='estevan'
-p7='london'
+p1={'password':'laurita123',
+    'correo':'laura@gmail.com'
+}
+p2={'password':'calitos0422',
+    'correo':'carlosr@gmail.com'
+}
+p3={'password':'marianatt67',
+    'correo':'maria.torres@hotmail.com'
+}
 
 #====== ADMINS ========#
-a1='robert'
-a2='jhonessy'
+a1={'password':'robert',
+    'correo':'roberto@gmail.com'
+}
+a2={'password':'jhonessy',
+    'correo':'jhonnesy@gmail.com'
+}
 
 #====== MEDICOS ========#
-m1='anita03123'
-m2='luisitocm'
-m3='ruizofia'
+m1={'password':'anita03123',
+    'correo':'ana.martinez@hospital.com'
+}
+m2={'password':'luisitocm',
+    'correo':'luis.garcia@hospital.com'
+}
+m3={'password':'ruizofia',
+    'correo':'sofia.ruiz@hospital.com'
+}
 
 
-hash = bcrypt.hashpw(p6.encode(), bcrypt.gensalt())
+############## Zona de Creacion de passwords ############
+
+hash = bcrypt.hashpw(p1.encode(), bcrypt.gensalt())
 
         
 

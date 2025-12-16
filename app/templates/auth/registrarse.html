@@ -81,7 +81,7 @@
                         <input type="checkbox" required name="terminos"> Acepto los términos y condiciones
                     </label>
 
-                    {% with messages = get_flashed_messages() %}
+                    {% with messages = get_flashed_messages(category_filter=['error']) %}
                         {% if messages %}
                             <ul class="flash-messages">
                             {% for message in messages %}
