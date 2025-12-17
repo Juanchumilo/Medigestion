@@ -11,6 +11,7 @@ Las dependencias que deben ser descargadas son:
 -- Flask
 -- bcrypt
 -- datetime
+-- pymysql
 
 Todas estas dependencias deben ser instaladas en un entorno virtual preferiblemente, como sugerencia personal recomiendo venv, ya que viene instalado con python.
 
