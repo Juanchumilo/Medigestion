@@ -21,12 +21,6 @@ git clone https://github.com/Juanchumilo/Medigestion.git
 cd Medigestion
 ```
 
-Despues de clonar el repo, se debe si o si eliminar las carpetas:
 
--- .vscode
--- __ pycache __  #Esta esta dentro de la carpeta /app/
-
-
-Si no se eliminan podria generar problemas
 
 
