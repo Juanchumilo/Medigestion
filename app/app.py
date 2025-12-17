@@ -142,7 +142,7 @@ def registrarse():
                 else:
                     flash("Ocurrió un error inesperado. Intenta nuevamente.", "error")
 
-                return redirect(url_for("registro"))
+                return redirect(url_for("registrarse"))
 
             finally:
                 cursor.close()
@@ -1198,15 +1198,146 @@ def crear_usuario(id):
 
     if session['usuario']['id'] != id:
         return "Acceso no autorizado", 403
-    tipo_usuario=''
-    
-    if request.method=='POST':
-        if request.form['tipo_usuario']=='pacientes':
-            nombre=request.form['nombre']
-            apellido=request.form['apellido']
-            
 
-    
+
+    tipo_usuario = request.args.get('tipo_usuario')
+
+    if request.method == 'POST':
+        accion = request.form.get('accion')
+
+        if accion == 'eleccion' and not tipo_usuario:
+            tipo_usuario = request.form.get('tipo_usuario')
+            return redirect(url_for('crear_usuario',id=session['usuario']['id'],tipo_usuario=tipo_usuario))
+
+        else:
+            if tipo_usuario=='pacientes':
+                if request.form['usuario']=='crear_paciente':
+                    if request.form['p_password']==request.form['p_confirm_password']:
+                        nombre=request.form['p_nombre'].strip().upper()
+                        apellido=request.form['p_apellido'].strip().upper()
+                        email=request.form['p_email']
+                        password= bcrypt.hashpw(request.form['p_password'].encode(), bcrypt.gensalt())
+                        fecha_nacimiento=request.form['p_birthdate']
+                        telefono=request.form['p_telefono']
+                        tipo_documento=request.form['p_tipo_documento']
+                        documento=request.form['p_documento']
+                        rh=request.form['p_rh']
+                        genero=request.form['p_genero']
+
+                        conn=get_connection()
+                        cursor=conn.cursor()
+                        sql='INSERT INTO pacientes (nombre,apellido,email,password,fecha_nacimiento,telefono,tipo_documento,documento,rh,genero) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)'
+
+
+                        try:
+                            cursor.execute(sql,(nombre,apellido,email,password,fecha_nacimiento,telefono,tipo_documento,documento,rh,genero))
+                            conn.commit()
+
+                        except pymysql.err.IntegrityError as e:
+                            error_msg = str(e)
+
+                            if "pacientes.telefono" in error_msg:
+                                flash("El teléfono ingresado ya está registrado.", "error")
+
+                            elif "pacientes.email" in error_msg:
+                                flash("El correo ingresado ya está registrado.", "error")
+
+                            elif "pacientes.documento" in error_msg:
+                                flash("El documento ingresado ya está registrado.", "error")
+
+                            else:
+                                flash("Ocurrió un error inesperado. Intenta nuevamente.", "error")
+
+                            return redirect(url_for("crear_usuario",id=session['usuario']['id']))
+
+                        finally:
+                            conn.close()
+                            cursor.close()
+
+                        flash('Usuario - Paciente creado exitosamente','usuario')
+                        return redirect(url_for('admin',id=session['usuario']['id']))
+
+            elif tipo_usuario=='medicos':
+                if request.form['usuario']=='crear_medico':
+                    if request.form['m_password']==request.form['m_confirm_password']:
+                        nombre=request.form['m_nombre'].strip().upper()
+                        apellido=request.form['m_apellido'].strip().upper()
+                        email=request.form['m_email']
+                        password= bcrypt.hashpw(request.form['m_password'].encode(), bcrypt.gensalt())
+                        telefono=request.form['m_telefono']
+                        documento=request.form['m_documento']
+
+                        conn=get_connection()
+                        cursor=conn.cursor()
+
+                        sql='INSERT INTO medicos (nombre,apellido,email,password,telefono,documento) VALUES (%s,%s,%s,%s,%s,%s)'
+
+                        try:
+                            cursor.execute(sql,(nombre,apellido,email,password,telefono,documento))
+                            conn.commit()
+
+                        except pymysql.err.IntegrityError as e:
+                            error_msg = str(e)
+
+                            if "medicos.telefono" in error_msg:
+                                flash("El teléfono ingresado ya está registrado.", "error")
+
+                            elif "medicos.email" in error_msg:
+                                flash("El correo ingresado ya está registrado.", "error")
+
+                            elif "medicos.documento" in error_msg:
+                                flash("El documento ingresado ya está registrado.", "error")
+
+                            else:
+                                flash("Ocurrió un error inesperado. Intenta nuevamente.", "error")
+
+                            return redirect(url_for("crear_usuario",id=session['usuario']['id']))
+
+                        finally:
+                            conn.close()
+                            cursor.close()
+
+                        flash('Usuario - Medico creado exitosamente','usuario')
+                        return redirect(url_for('admin',id=session['usuario']['id']))
+
+            elif tipo_usuario=='admintb':
+                if request.form['usuario']=='crear_admin':
+                    if request.form['a_password']==request.form['a_confirm_password']:
+                        nombre=request.form['a_nombre'].strip().upper()
+                        apellido=request.form['a_apellido'].strip().upper()
+                        email=request.form['a_email']
+                        password=bcrypt.hashpw(request.form['a_password'].encode(), bcrypt.gensalt())
+
+                        sql='INSERT INTO admintb (nombre,apellido,email,password) VALUES (%s,%s,%s,%s)'
+
+                        try:
+                            cursor.execute(sql,(nombre,apellido,email,password))
+                            conn.commit()
+
+                        except pymysql.err.IntegrityError as e:
+                            error_msg = str(e)
+
+                            if "admintb.telefono" in error_msg:
+                                flash("El teléfono ingresado ya está registrado.", "error")
+
+                            elif "admintb.email" in error_msg:
+                                flash("El correo ingresado ya está registrado.", "error")
+
+                            elif "admintb.documento" in error_msg:
+                                flash("El documento ingresado ya está registrado.", "error")
+
+                            else:
+                                flash("Ocurrió un error inesperado. Intenta nuevamente.", "error")
+
+                            return redirect(url_for("crear_usuario",id=session['usuario']['id']))
+
+                        finally:
+                            conn.close()
+                            cursor.close()
+
+                        flash('Usuario - Admin creado exitosamente','usuario')
+                        return redirect(url_for('admin',id=session['usuario']['id']))
+
     return render_template('admin/crear_usuario.html',tipo_usuario=tipo_usuario,hoy=hoy)
 
 

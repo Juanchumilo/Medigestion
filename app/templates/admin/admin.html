@@ -138,6 +138,8 @@
                     </ul>
                 {% endif %}
             {% endwith %}
+
+            <br><button><a href="{{url_for('crear_usuario',id=session['usuario']['id'])}}">Crear un Nuevo Usuario</a></button>
         </section>
 
 
