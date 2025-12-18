@@ -46,11 +46,13 @@
         </div>
     </body>
 
-
-    <!--Opciones adicionales-->
-    <h3>¿No tienes una cuenta?</h3>
-    <button id="btn-rgs"><a href="{{url_for('registrarse')}}">Registrarse</a></button>
-    <button id="btn-fgp"><a href="{{url_for('forgotpassword')}}">Olvidé mi contraseña</a></button>
+    
+    <!--Botones adicionales-->
+        <div class="login-link">
+            <h3>¿No tienes una cuenta?</h3>
+            <a href="{{url_for('ingresar')}}" class="log-link">Registrarse</a>
+            <a href="{{url_for('forgotpassword')}}" class="forgot-link">Olvidé mi contraseña</a>
+        </div>
     
 
     <!--Pie de Pagina-->
