@@ -4,9 +4,12 @@ import models,bcrypt,os
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from datetime import date,datetime
+from datetime import date,datetime,timedelta
 import random
 import funciones_adicionales as fun_ad
+import string
+import smtplib
+from email.message import EmailMessage
 EMAIL_USER = "medigestioninfo@gmail.com"
 EMAIL_PASS = "ouzx atrn tpsr ifwk"
 #Dia actual
@@ -15,9 +18,11 @@ hoy=date.today().isoformat()
 
 
 
+
 app=Flask(__name__)
 app.secret_key = os.urandom(24)
-
+#Tiempo de gracia del Session
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=60)
 ########################################################    PAGINAS AUTH    ########################################################
 
 #----> Index 
@@ -54,6 +59,7 @@ def ingresar():
                     'email': usuario['email'],
                     'cita_en_proceso':int()
                 }
+                session.permanent = True
                 cursor.close()
                 conn.close()
                 return redirect(f"/paciente/{usuario['id']}")
@@ -156,8 +162,73 @@ def registrarse():
 
 
 #----> Forgot Password 
-@app.route('/forgotpassword')
+@app.route('/forgotpassword',methods=['GET','POST'])
 def forgotpassword():
+
+    if request.method == 'POST':
+        paso = request.form.get('paso')
+
+        # PASO 1: validar correo
+        if paso == 'correo':
+            email = request.form['email']
+
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute('SELECT id FROM pacientes WHERE email = %s',(email,))
+            usuario = cursor.fetchone()
+
+            if not usuario:
+                flash('No existe una cuenta asociada a ese correo', 'error')
+                return redirect(url_for('forgotpassword'))
+
+            codigo = generar_codigo()
+
+            # guardar en session
+            session['reset_email'] = email
+            session['reset_codigo'] = codigo
+
+            enviar_codigo_email(email, codigo)
+
+            return render_template('auth/forgotpassword.html',mostrar_codigo=True,email=email)
+        # PASO 2: validar código
+        elif paso == 'codigo':
+            codigo = request.form['codigo'].strip()
+
+            if codigo != session.get('reset_codigo'):
+                flash('Código incorrecto', 'error')
+                return redirect(url_for('forgotpassword'))
+
+            return render_template('auth/forgotpassword.html',mostrar_password=True,email=session['reset_email'])
+        
+        # PASO 3: Establecer nueva contraseña
+        elif paso == 'new-password':
+            if request.form['new-password']==request.form['confirm-password']:
+                #Verificacion con la password actual
+                email=session.get('reset_email')
+                conn=get_connection()
+                cursor=conn.cursor()
+                cursor.execute('SELECT * FROM pacientes WHERE email=%s',(email))
+                usuario=cursor.fetchone()
+                conn.close()
+                cursor.close()
+                password_ingresada = request.form['new-password'].encode()
+                password_actual_hash = usuario['password'].encode() if isinstance(usuario['password'], str) else usuario['password']
+
+                if bcrypt.checkpw(password_ingresada, password_actual_hash):
+                    flash('La contraseña debe ser diferente a la que ya está registrada','error')
+                    return render_template('auth/forgotpassword.html',mostrar_password=True,email=session['reset_email'])
+                
+                else:
+                    conn=get_connection()
+                    cursor=conn.cursor()
+                    cursor.execute('UPDATE pacientes SET password=%s WHERE email=%s',(password_ingresada,email))
+                    conn.commit()
+                    conn.close()
+                    cursor.close()
+
+                    flash('Su contraseña ha sido restablecida correctamente')
+                    return redirect('ingresar')
+
     return render_template('auth/forgotpassword.html')
 
 
@@ -339,23 +410,52 @@ def medico(id):
     cursor.close()
 
     if request.method=='POST':
-        hora_ingreso=request.form['hora_ingreso']
-        hora_ingreso_tp=request.form['hora_ingreso_tp']
-        hora_salida=request.form['hora_salida']
-        hora_salida_tp=request.form['hora_salida_tp']
-        horario=request.form['horario']
+        if request.form['busqueda']=='False':
+            hora_ingreso=request.form['hora_ingreso']
+            hora_ingreso_tp=request.form['hora_ingreso_tp']
+            hora_salida=request.form['hora_salida']
+            hora_salida_tp=request.form['hora_salida_tp']
+            horario=request.form['horario']
 
-        conn=get_connection()
-        cursor=conn.cursor()
-        cursor.execute("UPDATE horario_medicos SET hora_ingreso=%s,hora_ingreso_tp=%s,hora_salida=%s,hora_salida_tp=%s,horario=%s WHERE medico_id=%s",(hora_ingreso,hora_ingreso_tp,hora_salida,hora_salida_tp,horario,id))
-        conn.commit()
+            conn=get_connection()
+            cursor=conn.cursor()
+            cursor.execute("UPDATE horario_medicos SET hora_ingreso=%s,hora_ingreso_tp=%s,hora_salida=%s,hora_salida_tp=%s,horario=%s WHERE medico_id=%s",(hora_ingreso,hora_ingreso_tp,hora_salida,hora_salida_tp,horario,id))
+            conn.commit()
 
-        conn.close()
-        cursor.close()
+            conn.close()
+            cursor.close()
 
-        flash('Horario Actualizado Correctamente')
-        return redirect(url_for('medico',id=id))
-    
+            flash('Horario Actualizado Correctamente','horario')
+            return redirect(url_for('medico',id=id))
+        if request.form['busqueda']=='True':
+            fecha=request.form['fecha']
+
+            sql = """
+                SELECT c.id, c.fecha, c.hora, c.motivo, c.estado, c.consultorio,
+                    p.id AS paciente_id, p.nombre AS paciente_nombre, p.apellido AS paciente_apellido,
+                    m.id AS medico_id, m.nombre AS medico_nombre, m.apellido AS medico_apellido
+                FROM citas c
+                JOIN pacientes p ON c.paciente_id = p.id
+                JOIN medicos m ON c.medico_id = m.id
+                WHERE c.fecha=%s 
+                """
+
+
+            conn=get_connection()
+            cursor=conn.cursor()
+            cursor.execute(sql, (fecha))  
+            busqueda=cursor.fetchall()
+            conn.close()
+            cursor.close()
+
+            if not busqueda:
+                flash('No existen citas en esa fecha','reporte')
+
+            return render_template("medico/medico.html",horario=horario,busqueda=busqueda)
+        
+        if request.form['busqueda']=='reset':
+            return redirect(url_for('medico',id=id))
+
     #Gestionar Reportes
 
     sql = """
@@ -375,6 +475,7 @@ def medico(id):
     cita_detalles = cursor.fetchall()   
     cursor.close()
     conn.close()
+
 
 
     return render_template("medico/medico.html",horario=horario,cita_detalles=cita_detalles)
@@ -559,7 +660,6 @@ def editar_datos(id):
             conn.close()
             return redirect(f'/editar_datos/paciente/{id}')
             
-
         #Editar Datos
         data=[request.form['nombre'].strip().upper(),request.form['apellido'].strip().upper(),request.form['tipo_documento'],request.form['documento'],request.form['birthdate'],request.form['genero'],request.form['phone'],request.form['email'],request.form['rh'],bcrypt.hashpw(request.form['password'].encode(), bcrypt.gensalt())]
         try:
@@ -1341,7 +1441,10 @@ def crear_usuario(id):
     return render_template('admin/crear_usuario.html',tipo_usuario=tipo_usuario,hoy=hoy)
 
 
-################===ADICIONALES===################
+
+
+
+########################################################    PAGINAS ADICIONALES    ########################################################
 #------> Ayuda Al Cliente <----------#
 @app.route('/atencion_cliente',methods=('GET','POST'))
 def atencion_cliente():
@@ -1390,6 +1493,33 @@ def atencion_cliente():
 def page_not_found(e):
     return render_template("otros/404.html"), 404
 
+
+
+##################### FUNCIONES #####################
+def generar_codigo():
+    return ''.join(random.choices(string.digits, k=6))
+
+def enviar_codigo_email(destinatario, codigo):
+    msg = EmailMessage()
+    msg['Subject'] = 'Recuperación de contraseña - MediGestión'
+    msg['From'] = EMAIL_USER
+    msg['To'] = destinatario
+
+    msg.set_content(f"""
+Hola,
+
+Tu código de recuperación es:
+
+{codigo}
+
+Si no solicitaste este código, ignora este mensaje.
+
+MediGestión
+""")
+
+    with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+        smtp.login(EMAIL_USER, EMAIL_PASS)
+        smtp.send_message(msg)
 
 if __name__=='__main__':
     app.run(debug=True)

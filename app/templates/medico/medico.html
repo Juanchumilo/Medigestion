@@ -91,7 +91,7 @@
                         </tr>
                     </tbody>
                 </table>
-                {% with messages = get_flashed_messages() %}
+                {% with messages = get_flashed_messages(category_filter=['horario']) %}
                     {% if messages %}
                         <ul class="flash-messages">
                         {% for message in messages %}
@@ -103,7 +103,7 @@
             </form><br>
             <!--Boton horario-->
             <div class="btn-actualizar-contenedor">
-                <button type="submit" class="btn-actualizar" form="actualizar-horario">Actualizar</button>
+                <button type="submit" class="btn-actualizar" form="actualizar-horario" name="busqueda" value="False">Actualizar</button>
             </div>
         </section>
 
@@ -111,6 +111,51 @@
     <!--Reportes Citas-->
         <section>
             <h2>Gestionar Reportes</h2>
+
+            <!--Form para buscar una cita en especifico-->
+            <form action="{{url_for('medico',id=session['usuario']['id'])}}" method="POST" id="busqueda">
+                <label for="fecha">Ingrese la fecha de la Cita que desea buscar:</label>
+                <input type="date" name="fecha">
+
+                <div class="btn-actualizar-contenedor">
+                    <button type="submit" name="busqueda" value="True" form="busqueda">Buscar</button>
+                    <button type="submit" name="busqueda" value="reset" form="busqueda">Restablecer </button>
+                </div>
+                
+            </form>
+
+            <br><br>
+            {% if busqueda %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nombre Paciente</th>
+                        <th>Estado</th>
+                        <th id="th-h">Hora</th>
+                        <th>Consultorio</th>
+                        <th>Fecha<br>(YY/MM/DD)</th>
+                        <th>Motivo de la Cita</th>
+                        <th>Reporte</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {%for i in busqueda %}
+                    <tr>
+                        <td>{{i['paciente_nombre']}} {{i['paciente_apellido']}}</td>
+                        <td>{{i['estado']}}</td>
+                        <td>{{i['hora']}}</td>
+                        <td>{{i['consultorio']}}</td>
+                        <td>{{i['fecha']}}</td>
+                        <td>{{i['motivo']}}</td>
+                        
+                        <td>{%if i['estado']=='Programada'%}<button><a href="{{url_for('medico_reporte', id=i['id'])}}">Generar</a></button>{%endif%}</td>
+                        
+                    </tr>
+                    {% endfor %}
+            {% endif %}
+
+            {% if not busqueda %}
+            <!--Tabla de todas las Citas-->      
             <table>
                 <thead>
                     <tr>
@@ -138,6 +183,7 @@
                     </tr>
                     {%endfor%}
             </table>
+            {% endif %}
             {% with messages = get_flashed_messages(category_filter=['reporte']) %}
                     {% if messages %}
                         <ul class="flash-messages">
