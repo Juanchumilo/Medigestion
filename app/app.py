@@ -23,6 +23,8 @@ app=Flask(__name__)
 app.secret_key = os.urandom(24)
 #Tiempo de gracia del Session
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=60)
+
+
 ########################################################    PAGINAS AUTH    ########################################################
 
 #----> Index 
@@ -37,7 +39,7 @@ def index():
 def ingresar():
     if request.method == 'POST':
         correo = request.form['email']
-        password = request.form['password']
+        password = request.form['password'].encode()
 
         conn = get_connection()
         cursor = conn.cursor()
@@ -48,10 +50,9 @@ def ingresar():
         usuario = cursor.fetchone()
 
         if usuario:
-            hashed_password = usuario['password']  
-
+            hashed_password = usuario['password'].encode() if isinstance(usuario['password'], str) else usuario['password']
             # Verificar contraseña
-            if bcrypt.checkpw(password.encode(), hashed_password.encode()):
+            if  bcrypt.checkpw(password, hashed_password):
                 session['usuario'] = {
                     'id': usuario['id'],
                     'nombre': usuario['nombre'],
@@ -69,10 +70,10 @@ def ingresar():
         usuario = cursor.fetchone()
 
         if usuario: #EDITA ESTE ERROR, (IFs)
-            hashed_password = usuario['password']  
+            hashed_password = usuario['password'].encode() if isinstance(usuario['password'], str) else usuario['password']  
 
             # Verificar contraseña
-            if bcrypt.checkpw(password.encode(), hashed_password.encode()):
+            if bcrypt.checkpw(password, hashed_password):
                 session['usuario'] = {
                     'id': usuario['id'],
                     'nombre': usuario['nombre'],
@@ -189,7 +190,7 @@ def forgotpassword():
 
             enviar_codigo_email(email, codigo)
 
-            return render_template('auth/forgotpassword.html',mostrar_codigo=True,email=email)
+            return render_template('auth/forgotpassword.html',mostrar_codigo=True,email=email,primera=False)
         # PASO 2: validar código
         elif paso == 'codigo':
             codigo = request.form['codigo'].strip()
@@ -221,7 +222,8 @@ def forgotpassword():
                 else:
                     conn=get_connection()
                     cursor=conn.cursor()
-                    cursor.execute('UPDATE pacientes SET password=%s WHERE email=%s',(password_ingresada,email))
+                    password_nueva = bcrypt.hashpw(request.form['new-password'].encode(), bcrypt.gensalt())
+                    cursor.execute('UPDATE pacientes SET password=%s WHERE email=%s',(password_nueva,email))
                     conn.commit()
                     conn.close()
                     cursor.close()
@@ -229,7 +231,7 @@ def forgotpassword():
                     flash('Su contraseña ha sido restablecida correctamente')
                     return redirect('ingresar')
 
-    return render_template('auth/forgotpassword.html')
+    return render_template('auth/forgotpassword.html', primera=True)
 
 
 

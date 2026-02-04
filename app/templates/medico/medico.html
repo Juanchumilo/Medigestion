@@ -111,7 +111,6 @@
     <!--Reportes Citas-->
         <section>
             <h2>Gestionar Reportes</h2>
-
             <!--Form para buscar una cita en especifico-->
             <form action="{{url_for('medico',id=session['usuario']['id'])}}" method="POST" id="busqueda">
                 <label for="fecha">Ingrese la fecha de la Cita que desea buscar:</label>
@@ -121,7 +120,6 @@
                     <button type="submit" name="busqueda" value="True" form="busqueda">Buscar</button>
                     <button type="submit" name="busqueda" value="reset" form="busqueda">Restablecer </button>
                 </div>
-                
             </form>
 
             <br><br>
