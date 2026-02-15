@@ -42,7 +42,10 @@ def ingresar():
         password = request.form['password'].encode()
 
         conn = get_connection()
-        cursor = conn.cursor()
+        if conn is None:
+            flash("El servicio no está disponible en este momento. Intenta más tarde.")
+            return render_template("auth/login.html")
+        cursor = conn.cursor() 
         
         # Buscar si es paciente
         sql = "SELECT * FROM pacientes WHERE email=%s"
@@ -64,12 +67,18 @@ def ingresar():
                 cursor.close()
                 conn.close()
                 return redirect(f"/paciente/{usuario['id']}")
+        cursor.close()
+        conn.close()
+
         # Buscar si es medico
+        conn = get_connection()
+        cursor = conn.cursor()
+
         sql = "SELECT * FROM medicos WHERE email=%s"
         cursor.execute(sql, (correo,))
         usuario = cursor.fetchone()
 
-        if usuario: #EDITA ESTE ERROR, (IFs)
+        if usuario: 
             hashed_password = usuario['password'].encode() if isinstance(usuario['password'], str) else usuario['password']  
 
             # Verificar contraseña
@@ -83,17 +92,22 @@ def ingresar():
                 cursor.close()
                 conn.close()
                 return redirect(f"/medico/{usuario['id']}")
+        cursor.close()
+        conn.close()
         
         # Buscar si es admin
+        conn = get_connection()
+        cursor = conn.cursor()
+
         sql = "SELECT * FROM admintb WHERE email=%s"
         cursor.execute(sql, (correo,))
         usuario = cursor.fetchone()
 
         if usuario:
-            hashed_password = usuario['password']  
+            hashed_password = usuario['password'].encode() if isinstance(usuario['password'], str) else usuario['password']  
 
             # Verificar contraseña
-            if bcrypt.checkpw(password.encode(), hashed_password.encode()):
+            if bcrypt.checkpw(password, hashed_password):
                 session['usuario'] = {
                     'id': usuario['id'],
                     'nombre': usuario['nombre'],
@@ -303,7 +317,7 @@ def paciente(id):
 
             if len(citas_diarias) < len(fun_ad.config()):
                 hora_str = request.form["hora"]
-                motivo = request.form["motivo_cita"].capitalize
+                motivo = request.form["motivo_cita"].capitalize()
 
                 if fecha_str and hora_str and motivo:
 
@@ -361,7 +375,7 @@ def paciente(id):
                     #Crear cita (el consultorio sera establecido de manera aleatoria tambien)
                     conn=get_connection()
                     cursor=conn.cursor()
-                    cursor.execute("INSERT INTO citas (paciente_id, fecha,hora, motivo,consultorio,medico_id) VALUES (%s, %s, %s, %s, %s,%s) ", (id,fecha_str, hora_str, motivo,random.randint(1,3),medico_elegido['id']))
+                    cursor.execute("INSERT INTO citas (paciente_id, fecha,hora, motivo,consultorio,medico_id,observaciones) VALUES (%s,%s, %s, %s, %s, %s,%s) ", (id,fecha_str, hora_str, motivo,random.randint(1,3),medico_elegido['id'],'N/A'))
                     conn.commit()
                     conn.close()
                     cursor.close()
@@ -720,7 +734,7 @@ def editar_cita_paciente(id):
     if request.method == 'POST':
         fecha= (request.form['fecha'].replace("/", "-"))
         hora = request.form['hora']
-        motivo = request.form['motivo'].capitalize
+        motivo = request.form['motivo'].capitalize()
         accion=request.form['accion']
         
 
@@ -938,7 +952,7 @@ def medico_reporte(id):
 
 
     if request.method=='POST':
-        motivo=request.form['motivo-cita'].capitalize
+        motivo=request.form['motivo-cita'].capitalize()
         observaciones=request.form['observaciones']
         estado='Completada'
 
@@ -1201,7 +1215,7 @@ def gestionar_cita(id):
             consultorio_seleccionado=request.form['consultorio_seleccionado']
             fecha=(request.form['fecha'].replace("/", "-"))
             hora=request.form['hora']
-            motivo=request.form['motivo'].capitalize
+            motivo=request.form['motivo'].capitalize()
             observaciones=request.form['observaciones']
 
             # 2) convertir la fecha y sacar día de la semana (lunes=0 ... domingo=6)
@@ -1454,7 +1468,7 @@ def atencion_cliente():
         nombre = request.form['nombre'].strip().upper()
         correo = request.form['email']
         motivo = request.form['motivo']
-        mensaje = request.form['mensaje'].capitalize
+        mensaje = request.form['mensaje'].capitalize()
 
         # Crear contenido del correo
         asunto = f"Nuevo mensaje de soporte - {motivo}"
