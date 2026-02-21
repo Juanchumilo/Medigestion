@@ -1,8 +1,8 @@
--- MySQL dump 10.13  Distrib 8.0.43, for Win64 (x86_64)
+-- MySQL dump 10.13  Distrib 8.0.44, for Win64 (x86_64)
 --
--- Host: localhost    Database: db_medigestion
+-- Host: 127.0.0.1    Database: db_medigestion
 -- ------------------------------------------------------
--- Server version	8.0.43
+-- Server version	8.0.44
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -59,6 +59,7 @@ CREATE TABLE `citas` (
   `estado` enum('Programada','Completada','Cancelada') NOT NULL DEFAULT 'Programada',
   `fecha` date NOT NULL,
   `hora` text NOT NULL,
+  `observaciones` text NOT NULL,
   PRIMARY KEY (`id`),
   KEY `paciente_id` (`paciente_id`),
   KEY `medico_id` (`medico_id`),
@@ -66,7 +67,7 @@ CREATE TABLE `citas` (
   CONSTRAINT `citas_ibfk_1` FOREIGN KEY (`paciente_id`) REFERENCES `pacientes` (`id`),
   CONSTRAINT `citas_ibfk_2` FOREIGN KEY (`medico_id`) REFERENCES `medicos` (`id`),
   CONSTRAINT `citas_ibfk_3` FOREIGN KEY (`consultorio`) REFERENCES `consultorio` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -75,8 +76,34 @@ CREATE TABLE `citas` (
 
 LOCK TABLES `citas` WRITE;
 /*!40000 ALTER TABLE `citas` DISABLE KEYS */;
-INSERT INTO `citas` VALUES (3,3,3,3,'loqsea','Completada','2025-12-23','18:38'),(5,1,1,2,'Me duele la pata derecha','Programada','2025-12-31','00:30'),(6,1,2,2,'Dolor abdominal','Programada','2025-12-31','16:30'),(7,1,3,1,'Otitis','Programada','2025-12-31','05:30'),(8,1,1,3,'Cita editada','Programada','2025-12-31','00:01');
+INSERT INTO `citas` VALUES (3,3,3,3,'loqsea','Completada','2025-12-23','18:38','n/a'),(5,1,1,2,'Me duele la pata derecha','Programada','2025-12-31','00:30','n/a'),(6,1,2,2,'Dolor abdominal','Completada','2025-12-31','16:30','el dolor abdominal era falso'),(7,1,3,1,'Otitis','Programada','2025-12-31','05:30','n/a'),(8,1,1,3,'Cita editada','Programada','2025-12-31','00:01','n/a'),(12,5,1,2,'Prueba 2 api editada','Programada','2026-02-26','10:07','N/A'),(13,5,2,1,'Cita creada prueba','Programada','2026-02-27','14:30','N/A');
 /*!40000 ALTER TABLE `citas` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `configuracion_sistema`
+--
+
+DROP TABLE IF EXISTS `configuracion_sistema`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `configuracion_sistema` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `max_usuarios` int NOT NULL,
+  `max_citas_diarias` int NOT NULL,
+  `notificaciones` enum('1','0') COLLATE utf8mb4_unicode_ci DEFAULT '1',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `configuracion_sistema`
+--
+
+LOCK TABLES `configuracion_sistema` WRITE;
+/*!40000 ALTER TABLE `configuracion_sistema` DISABLE KEYS */;
+INSERT INTO `configuracion_sistema` VALUES (1,500,70,'1');
+/*!40000 ALTER TABLE `configuracion_sistema` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -124,7 +151,7 @@ CREATE TABLE `efectuar_pago` (
   KEY `paciente_pago_idx` (`paciente`),
   CONSTRAINT `cita_pagada` FOREIGN KEY (`cita_pagada`) REFERENCES `citas` (`id`),
   CONSTRAINT `paciente_pago` FOREIGN KEY (`paciente`) REFERENCES `pacientes` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -133,6 +160,7 @@ CREATE TABLE `efectuar_pago` (
 
 LOCK TABLES `efectuar_pago` WRITE;
 /*!40000 ALTER TABLE `efectuar_pago` DISABLE KEYS */;
+INSERT INTO `efectuar_pago` VALUES (3,12,5,'juankmilobernalz@gmail.com','Tarjeta Débito'),(4,13,5,'juankmilobernalz@gmail.com','PSE');
 /*!40000 ALTER TABLE `efectuar_pago` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -310,7 +338,7 @@ CREATE TABLE `pacientes` (
   UNIQUE KEY `documento` (`documento`),
   UNIQUE KEY `telefono` (`telefono`),
   UNIQUE KEY `email` (`email`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -319,7 +347,7 @@ CREATE TABLE `pacientes` (
 
 LOCK TABLES `pacientes` WRITE;
 /*!40000 ALTER TABLE `pacientes` DISABLE KEYS */;
-INSERT INTO `pacientes` VALUES (1,'Laura','Gómez','Cédula de ciudadanía','1059876543','1995-03-12','Femenino','3216549870','laura@gmail.com','O+','$2b$12$VfhR6iQ2qYluFGYwWLsl5.tNCS8BNqcGMteFMU30UGa.fXY3b66ze'),(2,'Carlos','Ramírez','Cédula de ciudadanía','1023456789','1988-07-25','Masculino','3004567891','carlosr@gmail.com','A+','$2b$12$Cm3kt5RXc6Hn3uSSriFf.e2X6c.2LLJylJMOb8jNXhtqG5Fzv9QWm'),(3,'María','Torres','Tarjeta de identidad','890123456','2000-11-09','Otro','3109876543','maria.torres@hotmail.com','O-','$2b$12$cteVfgcFj7nVoOd64cK4XOz4d1kKZ1PrrGvwmfQpHbDaRi7TkTsZ2');
+INSERT INTO `pacientes` VALUES (1,'Laura','Gómez','Cédula de ciudadanía','1059876543','1995-03-12','Femenino','3216549870','laura@gmail.com','O+','$2b$12$VfhR6iQ2qYluFGYwWLsl5.tNCS8BNqcGMteFMU30UGa.fXY3b66ze'),(2,'Carlos','Ramírez','Cédula de ciudadanía','1023456789','1988-07-25','Masculino','3004567891','carlosr@gmail.com','A+','$2b$12$Cm3kt5RXc6Hn3uSSriFf.e2X6c.2LLJylJMOb8jNXhtqG5Fzv9QWm'),(3,'María','Torres','Tarjeta de identidad','890123456','2000-11-09','Otro','3109876543','maria.torres@hotmail.com','O-','$2b$12$cteVfgcFj7nVoOd64cK4XOz4d1kKZ1PrrGvwmfQpHbDaRi7TkTsZ2'),(4,'JHON','JAIRO','Cédula de ciudadanía','1252342356','2004-07-08','Masculino','3103477742','jairo@gmail.com','A+','$2b$12$1KaSTVuyPWyuebWbzkrjP.7Ijl.ejWRvbdWP15KWOggnIqSgZ6/AK'),(5,'JUAN','BERNAL','Cédula de ciudadanía','1524364976','2007-07-22','Masculino','7364859751','juankmilobernalz@gmail.com','A+','$2b$12$zXIuFE0Ey95NREDQfqBgXOBeXxEwYq1wX7sFaFqzUeyObqJ..xpeu'),(6,'ROBERTICO','EL CARLOS','Tarjeta de identidad','6452437548','2003-04-22','Masculino','123666489','jkasdjdasdwadasda@gmail.com','A+','$2b$12$mfh7d.3uoiDiMmPOb0XgceYmXcTKH7R46cYl7ARSJ6Vho9hP.An6q'),(7,'CARLOS','ALBACETE','Cédula de ciudadanía','264534657','2007-01-09','Masculino','3726485746','carloal@gmail.com','A+','$2b$12$xNrQLdprczv8UlyapwMzYeFnN.WxFOxst5trR7JYpJtYaOYe5Emxu'),(10,'FRIEDMAN','TERCERO','Cédula de extranjería','2645375849','2019-05-13','Femenino','1236458642','frt@gmail.com','B-','$2b$12$ROArbwWOn3XeZ4U5eYSIK.7CZWhXwqNv8y75r5Q3Vhs0JcWD3ZUbG');
 /*!40000 ALTER TABLE `pacientes` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -332,4 +360,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-12-02 16:12:23
+-- Dump completed on 2026-02-21 15:39:06
