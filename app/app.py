@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect,flash,session,url_for
 from db import get_connection
 import models,bcrypt,os
+import pymysql
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -315,6 +316,7 @@ def paciente(id):
             citas_diarias= cursor.fetchall()[0]
             cursor.close()
 
+            #Conteo de citas actuales
             if len(citas_diarias) < len(fun_ad.config()):
                 hora_str = request.form["hora"]
                 motivo = request.form["motivo_cita"].capitalize()
@@ -325,7 +327,7 @@ def paciente(id):
                         flash("Fecha y hora obligatorias",'cita')
                         return redirect(url_for('paciente', id=id))
 
-                    # 2) convertir la fecha y sacar día de la semana (lunes=0 ... domingo=6)
+                # 2) convertir la fecha y sacar día de la semana (lunes=0 ... domingo=6)
                     try:
                         fecha_obj = datetime.strptime(fecha_str, "%Y-%m-%d")
                         dia_semana = fecha_obj.weekday()
@@ -774,7 +776,7 @@ def editar_cita_paciente(id):
             """
             conn=get_connection()
             cursor=conn.cursor()
-            cursor.execute(sql_ocupados, (fecha_str, hora_str))
+            cursor.execute(sql_ocupados, (fecha, hora))
             ocupados_raw = cursor.fetchall()
             cursor.close(); conn.close()
             ocupados_ids = {r['medico_id'] for r in ocupados_raw}  # set de ids ocupados
@@ -789,8 +791,12 @@ def editar_cita_paciente(id):
 
             # Editar datos de la cita (solo despues de las anteriores confirmaciones)
             try:
+                conn=get_connection()
+                cursor=conn.cursor()
                 cursor.execute('UPDATE citas SET fecha=%s, hora=%s, motivo=%s WHERE id=%s',(fecha, hora, motivo, id))
                 conn.commit()
+                flash("Cita editada correctamente", "cita")
+                return redirect(url_for('paciente', id=session['usuario']['id']))
 
             except pymysql.err.IntegrityError as e:
                 flash("Ocurrió un error inesperado. Intenta nuevamente.", "error")
@@ -800,6 +806,7 @@ def editar_cita_paciente(id):
             finally:
                 cursor.close()
                 conn.close()
+                
 
         # Si la cita fue cancelada → eliminar
         elif accion == 'eliminar':
