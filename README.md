@@ -13,6 +13,7 @@ Las dependencias que deben ser descargadas son:
 -- datetime
 -- pymysql
 -- MYSQL 
+-- jwt
 
 Todas estas dependencias deben ser instaladas en un entorno virtual preferiblemente (ojalá que sea fuera de la carpeta Medigestion/), como sugerencia personal recomiendo venv, ya que viene instalado con python.
 

@@ -83,12 +83,19 @@
                 <label for="codigo_cita">Código de la Cita</label>
                 <input type="text" id="codigo_cita" name="codigo_cita">
                 <p>Recuerde que no necesita un Código de cita para crear una Cita. <br>Esta solo la usará para buscar una ya creada</p><br>
+                <div class="botones-citas">
+                    <button type="submit" name="accion" value="buscar">Buscar</button>
+                </div>
+            </form><br>
 
+            <form method="POST" action="{{ url_for('paciente', id=session['usuario']['id']) }}">
                 <label for="fecha">Fecha de la Cita</label>
                 <input type="date" id="fecha" name="fecha" min="{{hoy}}">
 
                 <label for="hora">Hora de la Cita</label>
-                <input type="time" id="hora" name="hora">
+                <select id="selector-horas" name="hora">
+                    <option value="">Seleccione una fecha primero</option>
+                </select>
 
                 <label for="motivo_cita">Motivo de la Cita</label>
                 <input type="text" id="motivo_cita" name="motivo_cita">
@@ -105,7 +112,6 @@
                 {% endwith %}
 
                 <div class="botones-citas">
-                    <button type="submit" name="accion" value="buscar">Buscar</button>
                     <button type="submit" name="accion" value="crear">Crear</button>
                 </div>
             </form>
@@ -138,6 +144,33 @@
                 </tbody>
             </table>
         </section>
+
+        <!--Script para seleccionar fecha y horas disponibles (evitar codigo innecesario en app.py)-->
+        <script>
+            // 1. Cada vez que el usuario cambie la fecha
+            document.getElementById('fecha').addEventListener('change', function() {
+                const fechaSeleccionada = this.value;
+                const selectorHoras = document.getElementById('selector-horas');
+
+                // 2. Llamamos a la API
+                fetch('/api/horas_disponibles?fecha=' + fechaSeleccionada)
+                    .then(respuesta => respuesta.json()) // Desmenuzamos el JSON
+                    .then(datos => {
+                        // 3. Limpiamos las opciones viejas
+                        selectorHoras.innerHTML = ''; 
+
+                        // 4. Mostrando cada opcion disponible
+                        if(datos.horas_libres && datos.horas_libres.length > 0) {
+                            datos.horas_libres.forEach(hora => {
+                                selectorHoras.innerHTML += `<option value="${hora}">${hora}</option>`;
+                            });
+                        } else {
+                            selectorHoras.innerHTML = '<option value="">No hay horas disponibles</option>';
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+            });
+        </script>
     </body>
 
 

@@ -1,27 +1,28 @@
-from flask import Flask, render_template, request, redirect,flash,session,url_for
+from flask import Flask, render_template, request, redirect,flash,session,url_for, jsonify
 from db import get_connection
-import models,bcrypt,os
-import pymysql
-import smtplib
+import bcrypt,os, random, pymysql, smtplib,string, jwt
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import date,datetime,timedelta
-import random
 import funciones_adicionales as fun_ad
-import string
-import smtplib
 from email.message import EmailMessage
-EMAIL_USER = "medigestioninfo@gmail.com"
-EMAIL_PASS = "ouzx atrn tpsr ifwk"
+from dotenv import load_dotenv
+
+load_dotenv()
+
+EMAIL_USER = os.getenv("EMAIL_USER")
+EMAIL_PASS = os.getenv("EMAIL_PASS")
+
 #Dia actual
 hoy=date.today().isoformat() 
 
 
+LLAVE_JWT = os.getenv("JWT_SECRET")
 
 
 
 app=Flask(__name__)
-app.secret_key = os.urandom(24)
+app.secret_key = os.getenv("app.sk")
 #Tiempo de gracia del Session
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=60)
 
@@ -327,7 +328,7 @@ def paciente(id):
                         flash("Fecha y hora obligatorias",'cita')
                         return redirect(url_for('paciente', id=id))
 
-                # 2) convertir la fecha y sacar día de la semana (lunes=0 ... domingo=6)
+                    # 2) convertir la fecha y sacar día de la semana (lunes=0 ... domingo=6)
                     try:
                         fecha_obj = datetime.strptime(fecha_str, "%Y-%m-%d")
                         dia_semana = fecha_obj.weekday()
@@ -1518,6 +1519,176 @@ def page_not_found(e):
 
 
 
+
+
+########################################################    API's (¡¡¡¡Aún no se implementa a la Web!!!!)   ######################################################################
+#------> API Horarios Medicos <----------#
+@app.route('/api/horarios_medicos', methods=['GET'])
+def api_horarios():
+    conn= get_connection()
+    cursor= conn.cursor()
+    cursor.execute("SELECT m.nombre,m.apellido,h.id AS horario_id,h.hora_ingreso,h.hora_ingreso_tp,h.hora_salida,h.hora_salida_tp,h.horario FROM horario_medicos h JOIN medicos m ON h.medico_id = m.id;")
+    horarios_medicos=cursor.fetchall()
+    conn.close()
+    return jsonify(horarios_medicos)
+
+#------> API Crear Cita Medica <----------#
+@app.route('/api/cita/crear', methods=['POST'])
+def api_crear_cita():
+    # En la API, los datos vienen en un JSON, no en un form
+    datos_recibidos = request.get_json()
+    id_paciente = datos_recibidos.get('id_paciente')
+    fecha_str = datos_recibidos.get('fecha')
+    hora_str = datos_recibidos.get('hora')
+    motivo = datos_recibidos.get('motivo')
+
+    # --- AQUÍ VA TU MISMA LÓGICA DE NEGOCIO ---
+    # (La de buscar médicos disponibles, el random.choice, etc.)
+    # ... (Imagina el código que ya tienes aquí) ...
+
+    if cita_exitosa:
+        # En vez de redirect, mandas confirmación
+        return jsonify({
+            "status": "success",
+            "mensaje": "Cita agendada correctamente",
+            "id_cita": nuevo_id
+        }), 201
+    else:
+        # En vez de flash, mandas un error que la App pueda leer
+        return jsonify({
+            "status": "error",
+            "mensaje": "No hay médicos disponibles"
+        }), 400
+
+#------> API Horas Disponibles para Crear una Cita <----------#
+@app.route('/api/horas_disponibles', methods=['GET'])
+def api_horas_disponibles():
+    #Se recibe la fecha
+    fecha_str = request.args.get('fecha')
+    
+    if not fecha_str:
+        return jsonify({
+            "status": "error", 
+            "mensaje": "Debes enviar una fecha válida"
+        }), 400
+        
+    try:
+        horas = obtener_slots_libres(fecha_str=fecha_str)
+        
+        #Devuelves JSON con éxito
+        return jsonify({
+            "status": "success",
+            "fecha_consultada": fecha_str,
+            "horas_libres": horas
+        }), 200
+        
+    except Exception as e:
+        #Por si la base de datos falla o la fecha tiene mal formato
+        return jsonify({
+            "status": "error",
+            "mensaje": str(e)
+        }), 500
+
+#------> API Inicio de Sesion <----------#
+@app.route('api/login', methods=['POST'])
+def api_login():
+    credenciales = request.get_json()
+    #Verificacion de envio de credenciales
+    if not credenciales or not credenciales.get('correo') or not credenciales.get('password'):
+        return jsonify({"status": "error", "mensaje": "Faltan datos"}), 400
+    
+    correo = credenciales.get('correo')
+    password = credenciales.get('password').encode()
+
+    conn = get_connection()
+    if conn is None:
+        return jsonify({
+            "status":"error",
+            "mensaje":"El servicio no está disponible en este momento. Intenta más tarde."
+            }), 503
+    cursor = conn.cursor()
+        
+    # Buscar si es paciente
+    sql = "SELECT * FROM pacientes WHERE email=%s"
+    cursor.execute(sql, (correo,))
+    usuario = cursor.fetchone()
+
+    if usuario:
+        hashed_password = usuario['password'].encode() if isinstance(usuario['password'], str) else usuario['password']
+        # Verificar contraseña
+        if  bcrypt.checkpw(password, hashed_password):
+            datos_token = {
+                "id_usuario": usuario['id'],
+                "rol": 'paciente',
+                "exp": datetime.datetime.utcnow() + datetime.timedelta(days=1)
+            }
+            datos= {
+                'id': usuario['id'],
+                'nombre': usuario['nombre'],
+                'apellido': usuario['apellido'],
+                'email': usuario['email'],
+                'cita_en_proceso':int()
+            }
+            cursor.close()
+            conn.close()
+            token_generado = jwt.encode(datos_token, LLAVE_JWT, algorithm="HS256")
+            return jsonify({
+                'status':'success',
+                'mensaje':'Login exitoso',
+                'token':token_generado,
+                'datos':datos
+            }), 200
+    cursor.close()
+    conn.close()
+
+    # Buscar si es medico
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    sql = "SELECT * FROM medicos WHERE email=%s"
+    cursor.execute(sql, (correo,))
+    usuario = cursor.fetchone()
+
+    if usuario: 
+        hashed_password = usuario['password'].encode() if isinstance(usuario['password'], str) else usuario['password']  
+
+        # Verificar contraseña
+        if bcrypt.checkpw(password, hashed_password):
+            session['usuario'] = {
+                'id': usuario['id'],
+                'nombre': usuario['nombre'],
+                'apellido': usuario['apellido'],
+                'email': usuario['email']
+            }
+            cursor.close()
+            conn.close()
+            return redirect(f"/medico/{usuario['id']}")
+    cursor.close()
+    conn.close()
+        
+    # Buscar si es admin
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    sql = "SELECT * FROM admintb WHERE email=%s"
+    cursor.execute(sql, (correo,))
+    usuario = cursor.fetchone()
+
+    if usuario:
+        hashed_password = usuario['password'].encode() if isinstance(usuario['password'], str) else usuario['password']  
+
+        # Verificar contraseña
+        if bcrypt.checkpw(password, hashed_password):
+            session['usuario'] = {
+                'id': usuario['id'],
+                'nombre': usuario['nombre'],
+                'apellido': usuario['apellido'],
+                'email': usuario['email']
+            }
+            cursor.close()
+            conn.close()
+
+
 ##################### FUNCIONES #####################
 def generar_codigo():
     return ''.join(random.choices(string.digits, k=6))
@@ -1543,6 +1714,55 @@ MediGestión
     with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
         smtp.login(EMAIL_USER, EMAIL_PASS)
         smtp.send_message(msg)
+
+def obtener_slots_libres(fecha_str):
+    # 1. Determinar día de la semana (0-6)
+    fecha_obj = datetime.strptime(fecha_str, "%Y-%m-%d")
+    dia_semana = fecha_obj.weekday()
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    # 2. SQL CORREGIDO: Traemos las 3 tablas con JOIN y tus nuevas columnas
+    sql = """
+        SELECT m.id, m.nombre, m.apellido, hm.hora_real_ingreso, hm.hora_real_salida
+        FROM medicos m
+        JOIN horario_dias hd ON hd.medico_id = m.id
+        JOIN horario_medicos hm ON hm.medico_id = m.id
+        WHERE hd.dia_semana = %s
+        """
+    cursor.execute(sql, (dia_semana,))
+    medicos_del_dia = cursor.fetchall()
+
+    # 3. Buscar citas que YA existen para ese día
+    cursor.execute("SELECT medico_id, hora FROM citas WHERE fecha = %s", (fecha_str,))
+    citas_existentes = cursor.fetchall()
+    
+    # Creamos un conjunto de "médico_id:hora"
+    ocupados = {f"{c['medico_id']}:{c['hora']}" for c in citas_existentes}
+
+    slots_finales = set() 
+
+    # 4. Generar slots de 30 min
+    for med in medicos_del_dia:
+        h_inicio = datetime.strptime(str(med['hora_real_ingreso']), "%H:%M:%S")
+        h_fin = datetime.strptime(str(med['hora_real_salida']), "%H:%M:%S")
+        
+        # FIX PARA EL TURNO DE MEDIANOCHE (00:00:00)
+        if h_fin <= h_inicio:
+            h_fin += timedelta(days=1)
+        
+        actual = h_inicio
+        while actual < h_fin:
+            hora_formateada = actual.strftime("%H:%M")
+            # Si ese médico NO está ocupado a esa hora, el slot es libre
+            if f"{med['id']}:{hora_formateada}" not in ocupados:
+                slots_finales.add(hora_formateada)
+            actual += timedelta(minutes=30)
+
+    cursor.close()
+    conn.close()
+    return sorted(list(slots_finales)) # Devolvemos las horas ordenadas
 
 if __name__=='__main__':
     app.run(debug=True)
