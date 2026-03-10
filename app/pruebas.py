@@ -47,7 +47,7 @@ m3={'password':'ruizofia',
 ############## Zona de Creacion de passwords ############
 
 hash = bcrypt.hashpw(p5['password'].encode(), bcrypt.gensalt())
-        
+
 
 print(f'esta es tu contra: {hash.decode()}')
 

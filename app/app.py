@@ -6,6 +6,7 @@ from email.mime.multipart import MIMEMultipart
 from datetime import date,datetime,timedelta
 import funciones_adicionales as fun_ad
 from email.message import EmailMessage
+from functools import wraps
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -25,6 +26,117 @@ app=Flask(__name__)
 app.secret_key = os.getenv("app.sk")
 #Tiempo de gracia del Session
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=60)
+
+
+
+########################################################      FUNCIONES      ##########################################################################################
+def generar_codigo():
+    return ''.join(random.choices(string.digits, k=6))
+
+def enviar_codigo_email(destinatario, codigo):
+    msg = EmailMessage()
+    msg['Subject'] = 'Recuperación de contraseña - MediGestión'
+    msg['From'] = EMAIL_USER
+    msg['To'] = destinatario
+
+    msg.set_content(f"""
+Hola,
+
+Tu código de recuperación es:
+
+{codigo}
+
+Si no solicitaste este código, ignora este mensaje.
+
+MediGestión
+""")
+
+    with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+        smtp.login(EMAIL_USER, EMAIL_PASS)
+        smtp.send_message(msg)
+
+def obtener_slots_libres(fecha_str):
+    # 1. Determinar día de la semana (0-6)
+    fecha_obj = datetime.strptime(fecha_str, "%Y-%m-%d")
+    dia_semana = fecha_obj.weekday()
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    # 2. SQL CORREGIDO: Traemos las 3 tablas con JOIN y tus nuevas columnas
+    sql = """
+        SELECT m.id, m.nombre, m.apellido, hm.hora_real_ingreso, hm.hora_real_salida
+        FROM medicos m
+        JOIN horario_dias hd ON hd.medico_id = m.id
+        JOIN horario_medicos hm ON hm.medico_id = m.id
+        WHERE hd.dia_semana = %s
+        """
+    cursor.execute(sql, (dia_semana,))
+    medicos_del_dia = cursor.fetchall()
+
+    # 3. Buscar citas que YA existen para ese día
+    cursor.execute("SELECT medico_id, hora FROM citas WHERE fecha = %s", (fecha_str,))
+    citas_existentes = cursor.fetchall()
+    
+    # Creamos un conjunto de "médico_id:hora"
+    ocupados = {f"{c['medico_id']}:{c['hora']}" for c in citas_existentes}
+
+    slots_finales = set() 
+
+    # 4. Generar slots de 30 min
+    for med in medicos_del_dia:
+        h_inicio = datetime.strptime(str(med['hora_real_ingreso']), "%H:%M:%S")
+        h_fin = datetime.strptime(str(med['hora_real_salida']), "%H:%M:%S")
+        
+        # FIX PARA EL TURNO DE MEDIANOCHE (00:00:00)
+        if h_fin <= h_inicio:
+            h_fin += timedelta(days=1)
+        
+        actual = h_inicio
+        while actual < h_fin:
+            hora_formateada = actual.strftime("%H:%M")
+            # Si ese médico NO está ocupado a esa hora, el slot es libre
+            if f"{med['id']}:{hora_formateada}" not in ocupados:
+                slots_finales.add(hora_formateada)
+            actual += timedelta(minutes=30)
+
+    cursor.close()
+    conn.close()
+    return sorted(list(slots_finales)) # Devolvemos las horas ordenadas
+
+def token_requerido(f):
+    @wraps(f)
+    def decorador(*args, **kwargs):
+        token = None
+
+        # 1. Buscamos el token en los Headers
+        if 'Authorization' in request.headers:
+            # El formato estándar
+            auth_header = request.headers['Authorization']
+            partes = auth_header.split(" ")
+            if len(partes) == 2 and partes[0] == "Bearer":
+                token = partes[1]
+
+        # 2. Si no hay token
+        if not token:
+            return jsonify({'status': 'error', 'mensaje': 'Falta el token de autorización, acceso denegado'}), 401
+
+        # 3. Si hay token
+        try:
+            datos_token = jwt.decode(token, LLAVE_JWT, algorithms=["HS256"])
+            # 'datos_token' ahora contiene el diccionario que armamos en el Login (id_usuario, rol, exp)
+            
+        except jwt.ExpiredSignatureError:
+            return jsonify({'status': 'error', 'mensaje': 'El token ha expirado, vuelve a iniciar sesión'}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({'status': 'error', 'mensaje': 'Token inválido o corrupto'}), 401
+
+        # 4. Si todo está perfecto, dejamos que la función original se ejecute
+        return f(datos_token, *args, **kwargs)
+    
+    return decorador
+
+
 
 
 ########################################################    PAGINAS AUTH    ########################################################
@@ -1521,9 +1633,10 @@ def page_not_found(e):
 
 
 
-########################################################    API's (¡¡¡¡Aún no se implementa a la Web!!!!)   ######################################################################
+########################################################    API's (¡¡¡¡Aún no se implementan!!!!)   ######################################################################
 #------> API Horarios Medicos <----------#
 @app.route('/api/horarios_medicos', methods=['GET'])
+@token_requerido
 def api_horarios():
     conn= get_connection()
     cursor= conn.cursor()
@@ -1534,34 +1647,190 @@ def api_horarios():
 
 #------> API Crear Cita Medica <----------#
 @app.route('/api/cita/crear', methods=['POST'])
+@token_requerido
 def api_crear_cita():
-    # En la API, los datos vienen en un JSON, no en un form
     datos_recibidos = request.get_json()
-    id_paciente = datos_recibidos.get('id_paciente')
+    id = datos_recibidos.get('id_paciente')
     fecha_str = datos_recibidos.get('fecha')
     hora_str = datos_recibidos.get('hora')
     motivo = datos_recibidos.get('motivo')
+    datos_interfaz=datos_recibidos.get('datos_interfaz')
 
-    # --- AQUÍ VA TU MISMA LÓGICA DE NEGOCIO ---
-    # (La de buscar médicos disponibles, el random.choice, etc.)
-    # ... (Imagina el código que ya tienes aquí) ...
+    # Api ajustada para si el admin es quien usa la api 
+    # (mismo funcionamiento al de paciente a excepcion de la posibilidad de escoger tanto medico,consultorio y paciente)
+    if datos_interfaz['rol_asignado']=='admin':
+        consultorio=datos_recibidos.get('consultorio')
+        medico_escogido=datos_recibidos.get('medico_escogido')
 
-    if cita_exitosa:
-        # En vez de redirect, mandas confirmación
+        if len(citas_diarias) < len(fun_ad.config()):
+            hora_str = request.form["hora"]
+            motivo = request.form["motivo_cita"].capitalize()
+
+            if fecha_str and hora_str and motivo:
+
+                if not fecha_str or not hora_str:
+                    return jsonify({
+                        'status': 'error',
+                        'mensaje':'Fecha y hora obligatorias'
+                    }), 401
+                
+                conn=get_connection()
+                cursor=conn.cursor()
+                cursor.execute("INSERT INTO citas (paciente_id, fecha,hora, motivo,consultorio,medico_id,observaciones) VALUES (%s,%s, %s, %s, %s, %s,%s) ", (id,fecha_str, hora_str, motivo,consultorio,medico_escogido,motivo))
+                conn.commit()
+                conn.close()
+                cursor.close()
+
+
+                conn=get_connection()
+                cursor=conn.cursor()
+                cursor.execute("""
+                    SELECT * FROM citas 
+                    WHERE paciente_id=%s 
+                    AND hora=%s 
+                    AND motivo=%s 
+                    AND medico_id=%s
+                """, (id, hora_str, motivo, medico_elegido['id']))
+
+                cita_creada =cursor.fetchone()
+                conn.close()
+                cursor.close()
+        else:
+            return jsonify({
+                'status':'error',
+                'mensaje':'Ya existe un maximo de citas diarias para esa fecha, por favor elija otra'
+            }), 400
+
+        if cita_creada:
+            return jsonify({
+                "status": "success",
+                "mensaje": "Cita agendada correctamente",
+                "id_cita": cita_creada['id']
+            }), 201
+        else:
+            return jsonify({
+                "status": "error",
+                "mensaje": "Cita no creada correctamente, intente nuevamente"
+            }), 400
+
+
+    # --- Proceso de verificacion (medicos disponibles, citas maximas) ---
+    cursor=get_connection().cursor()
+    fecha_str = request.form["fecha"]
+    cursor.execute('SELECT COUNT(*) FROM citas WHERE fecha=%s',(fecha_str))
+    citas_diarias= cursor.fetchall()[0]
+    cursor.close()
+
+    # Conteo de citas actuales
+    if len(citas_diarias) < len(fun_ad.config()):
+        hora_str = request.form["hora"]
+        motivo = request.form["motivo_cita"].capitalize()
+
+        if fecha_str and hora_str and motivo:
+
+            if not fecha_str or not hora_str:
+                return jsonify({
+                    'status': 'error',
+                    'mensaje':'Fecha y hora obligatorias'
+                }), 401
+
+            # Convertir la fecha y sacar día de la semana (lunes=0 ... domingo=6)
+            try:
+                fecha_obj = datetime.strptime(fecha_str, "%Y-%m-%d")
+                dia_semana = fecha_obj.weekday()
+            except Exception as e:
+                return jsonify({
+                    'status': 'error',
+                    'mensaje': str(e)
+                }), 415
+
+                
+            # Consultar medicos para ese dia en especifico (se elige uno aleatoriamente dentro de los disponibles para ese dia)
+            sql_medicos = """
+            SELECT m.id, m.nombre, m.apellido
+            FROM medicos m
+            JOIN horario_dias hd ON hd.medico_id = m.id
+            WHERE hd.dia_semana = %s
+            """
+            conn=get_connection()
+            cursor=conn.cursor()
+            cursor.execute(sql_medicos, (dia_semana,))
+            medicos = cursor.fetchall()
+            cursor.close(); conn.close()
+
+            if not medicos:
+                return jsonify({
+                    'status': 'error',
+                    'mensaje':'Medicos no disponibles para esa fecha'
+                }), 400
+
+            # Excluir médicos ya ocupados en esa fecha y hora 
+            sql_ocupados = """
+            SELECT medico_id FROM citas
+            WHERE fecha = %s AND hora = %s
+            """
+            conn=get_connection()
+            cursor=conn.cursor()
+            cursor.execute(sql_ocupados, (fecha_str, hora_str))
+            ocupados_raw = cursor.fetchall()
+            cursor.close(); conn.close()
+            ocupados_ids = {r['medico_id'] for r in ocupados_raw}  # set de ids ocupados
+
+            disponibles = [m for m in medicos if m['id'] not in ocupados_ids]
+
+            if not disponibles:
+                return jsonify({
+                    'status': 'error',
+                    'mensaje':'Medicos no disponibles para ese dia/hora'
+                }), 400
+
+            # Elegir aleatoriamente uno entre los medicos disponibles
+            medico_elegido = random.choice(disponibles)
+
+            # Crear cita (el consultorio sera establecido de manera aleatoria tambien)
+            conn=get_connection()
+            cursor=conn.cursor()
+            cursor.execute("INSERT INTO citas (paciente_id, fecha,hora, motivo,consultorio,medico_id,observaciones) VALUES (%s,%s, %s, %s, %s, %s,%s) ", (id,fecha_str, hora_str, motivo,random.randint(1,3),medico_elegido['id'],'N/A'))
+            conn.commit()
+            conn.close()
+            cursor.close()
+
+
+            conn=get_connection()
+            cursor=conn.cursor()
+            cursor.execute("""
+                SELECT * FROM citas 
+                WHERE paciente_id=%s 
+                AND hora=%s 
+                AND motivo=%s 
+                AND medico_id=%s
+            """, (id, hora_str, motivo, medico_elegido['id']))
+
+            cita_creada =cursor.fetchone()
+            conn.close()
+            cursor.close()
+
+    else:
+        return jsonify({
+            'status':'error',
+            'mensaje':'Ya existe un maximo de citas diarias para esa fecha, por favor elija otra'
+        }), 400
+
+    if cita_creada:
         return jsonify({
             "status": "success",
             "mensaje": "Cita agendada correctamente",
-            "id_cita": nuevo_id
+            "id_cita": cita_creada['id']
         }), 201
     else:
-        # En vez de flash, mandas un error que la App pueda leer
         return jsonify({
             "status": "error",
-            "mensaje": "No hay médicos disponibles"
+            "mensaje": "Cita no creada correctamente, intente nuevamente"
         }), 400
 
-#------> API Horas Disponibles para Crear una Cita <----------#
+#------> API Consultar Horas Disponibles para Crear una Cita <----------#
 @app.route('/api/horas_disponibles', methods=['GET'])
+@token_requerido
 def api_horas_disponibles():
     #Se recibe la fecha
     fecha_str = request.args.get('fecha')
@@ -1590,179 +1859,131 @@ def api_horas_disponibles():
         }), 500
 
 #------> API Inicio de Sesion <----------#
-@app.route('api/login', methods=['POST'])
+@app.route('/api/login', methods=['POST'])
 def api_login():
     credenciales = request.get_json()
-    #Verificacion de envio de credenciales
+
+    # Verificacion de envio de credenciales
     if not credenciales or not credenciales.get('correo') or not credenciales.get('password'):
         return jsonify({"status": "error", "mensaje": "Faltan datos"}), 400
     
     correo = credenciales.get('correo')
     password = credenciales.get('password').encode()
 
-    conn = get_connection()
-    if conn is None:
+    # Comprobacion de conexion con la DB
+    try:
+        conn=get_connection()
+        cursor=conn.cursor()
+    except Exception as e:
         return jsonify({
-            "status":"error",
-            "mensaje":"El servicio no está disponible en este momento. Intenta más tarde."
-            }), 503
-    cursor = conn.cursor()
-        
-    # Buscar si es paciente
-    sql = "SELECT * FROM pacientes WHERE email=%s"
-    cursor.execute(sql, (correo,))
-    usuario = cursor.fetchone()
-
-    if usuario:
-        hashed_password = usuario['password'].encode() if isinstance(usuario['password'], str) else usuario['password']
-        # Verificar contraseña
-        if  bcrypt.checkpw(password, hashed_password):
-            datos_token = {
-                "id_usuario": usuario['id'],
-                "rol": 'paciente',
-                "exp": datetime.datetime.utcnow() + datetime.timedelta(days=1)
-            }
-            datos= {
-                'id': usuario['id'],
-                'nombre': usuario['nombre'],
-                'apellido': usuario['apellido'],
-                'email': usuario['email'],
-                'cita_en_proceso':int()
-            }
-            cursor.close()
-            conn.close()
-            token_generado = jwt.encode(datos_token, LLAVE_JWT, algorithm="HS256")
-            return jsonify({
-                'status':'success',
-                'mensaje':'Login exitoso',
-                'token':token_generado,
-                'datos':datos
-            }), 200
-    cursor.close()
-    conn.close()
-
-    # Buscar si es medico
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    sql = "SELECT * FROM medicos WHERE email=%s"
-    cursor.execute(sql, (correo,))
-    usuario = cursor.fetchone()
-
-    if usuario: 
-        hashed_password = usuario['password'].encode() if isinstance(usuario['password'], str) else usuario['password']  
-
-        # Verificar contraseña
-        if bcrypt.checkpw(password, hashed_password):
-            session['usuario'] = {
-                'id': usuario['id'],
-                'nombre': usuario['nombre'],
-                'apellido': usuario['apellido'],
-                'email': usuario['email']
-            }
-            cursor.close()
-            conn.close()
-            return redirect(f"/medico/{usuario['id']}")
-    cursor.close()
-    conn.close()
-        
-    # Buscar si es admin
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    sql = "SELECT * FROM admintb WHERE email=%s"
-    cursor.execute(sql, (correo,))
-    usuario = cursor.fetchone()
-
-    if usuario:
-        hashed_password = usuario['password'].encode() if isinstance(usuario['password'], str) else usuario['password']  
-
-        # Verificar contraseña
-        if bcrypt.checkpw(password, hashed_password):
-            session['usuario'] = {
-                'id': usuario['id'],
-                'nombre': usuario['nombre'],
-                'apellido': usuario['apellido'],
-                'email': usuario['email']
-            }
-            cursor.close()
-            conn.close()
-
-
-##################### FUNCIONES #####################
-def generar_codigo():
-    return ''.join(random.choices(string.digits, k=6))
-
-def enviar_codigo_email(destinatario, codigo):
-    msg = EmailMessage()
-    msg['Subject'] = 'Recuperación de contraseña - MediGestión'
-    msg['From'] = EMAIL_USER
-    msg['To'] = destinatario
-
-    msg.set_content(f"""
-Hola,
-
-Tu código de recuperación es:
-
-{codigo}
-
-Si no solicitaste este código, ignora este mensaje.
-
-MediGestión
-""")
-
-    with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
-        smtp.login(EMAIL_USER, EMAIL_PASS)
-        smtp.send_message(msg)
-
-def obtener_slots_libres(fecha_str):
-    # 1. Determinar día de la semana (0-6)
-    fecha_obj = datetime.strptime(fecha_str, "%Y-%m-%d")
-    dia_semana = fecha_obj.weekday()
-
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    # 2. SQL CORREGIDO: Traemos las 3 tablas con JOIN y tus nuevas columnas
-    sql = """
-        SELECT m.id, m.nombre, m.apellido, hm.hora_real_ingreso, hm.hora_real_salida
-        FROM medicos m
-        JOIN horario_dias hd ON hd.medico_id = m.id
-        JOIN horario_medicos hm ON hm.medico_id = m.id
-        WHERE hd.dia_semana = %s
-        """
-    cursor.execute(sql, (dia_semana,))
-    medicos_del_dia = cursor.fetchall()
-
-    # 3. Buscar citas que YA existen para ese día
-    cursor.execute("SELECT medico_id, hora FROM citas WHERE fecha = %s", (fecha_str,))
-    citas_existentes = cursor.fetchall()
+            'status':'error',
+            'mensaje':str(e)
+        }), 503
     
-    # Creamos un conjunto de "médico_id:hora"
-    ocupados = {f"{c['medico_id']}:{c['hora']}" for c in citas_existentes}
+    usuario = None
+    rol_asignado = None
 
-    slots_finales = set() 
+    # Buscar en las tablas secuencialmente
+    # Si no lo encuentra en pacientes, busca en médicos. Si no, en admins.
+    cursor.execute("SELECT * FROM pacientes WHERE email=%s", (correo,))
+    usuario = cursor.fetchone()
+    if usuario:
+        rol_asignado = 'paciente'
+        
+    if not usuario:
+        cursor.execute("SELECT * FROM medicos WHERE email=%s", (correo,))
+        usuario = cursor.fetchone()
+        if usuario:
+            rol_asignado = 'medico'
 
-    # 4. Generar slots de 30 min
-    for med in medicos_del_dia:
-        h_inicio = datetime.strptime(str(med['hora_real_ingreso']), "%H:%M:%S")
-        h_fin = datetime.strptime(str(med['hora_real_salida']), "%H:%M:%S")
-        
-        # FIX PARA EL TURNO DE MEDIANOCHE (00:00:00)
-        if h_fin <= h_inicio:
-            h_fin += timedelta(days=1)
-        
-        actual = h_inicio
-        while actual < h_fin:
-            hora_formateada = actual.strftime("%H:%M")
-            # Si ese médico NO está ocupado a esa hora, el slot es libre
-            if f"{med['id']}:{hora_formateada}" not in ocupados:
-                slots_finales.add(hora_formateada)
-            actual += timedelta(minutes=30)
+    if not usuario:
+        cursor.execute("SELECT * FROM admintb WHERE email=%s", (correo,))
+        usuario = cursor.fetchone()
+        if usuario:
+            rol_asignado = 'admin'
 
     cursor.close()
     conn.close()
-    return sorted(list(slots_finales)) # Devolvemos las horas ordenadas
+
+    # Si después de buscar en las 3 tablas no existe, lo rechazamos
+    if not usuario:
+        return jsonify({'status':'error', 'mensaje':'Correo o contraseña incorrecta'}), 401
+
+    # Si existe, verificamos la contraseña
+    hashed_password = usuario['password'].encode() if isinstance(usuario['password'], str) else usuario['password']
+
+    if bcrypt.checkpw(password, hashed_password):
+        # Generamos el token
+        datos_token = {
+            "id_usuario": usuario['id'],
+            "rol": rol_asignado,  
+            "exp": datetime.datetime.utcnow() + datetime.timedelta(days=1)
+        }
+        
+        datos_interfaz = {
+            'id': usuario['id'],
+            # Usamos .get() por si la tabla de admins no tiene la columna 'nombre'
+            'nombre': usuario['nombre'], 
+            'apellido': usuario['apellido'],
+            'email': usuario['email'],
+            'rol': rol_asignado
+        }
+        
+        token_generado = jwt.encode(datos_token, LLAVE_JWT, algorithm="HS256")
+        
+        return jsonify({
+            'status': 'success',
+            'mensaje': f'Bienvenido, {rol_asignado}',
+            'token': token_generado,
+            'datos': datos_interfaz
+        }), 200
+
+    else:
+        # Contraseña incorrecta
+        return jsonify({'status':'error', 'mensaje':'Correo o contraseña incorrecta'}), 401
+
+#------> API Efectuar Pago <----------#
+@app.route('/api/cita/pago', methods=['POST'])
+@token_requerido
+def api_efectuar_pago():
+    datos_recibidos=request.get_json()
+    id_cita=datos_recibidos.get('id_cita')
+    
+    email=datos_recibidos.get('email')
+    metodo_pago=datos_recibidos.get('metodo_pago')
+    conn=get_connection()
+    cursor=conn.cursor()
+
+    cursor.execute("INSERT INTO efectuar_pago (email,metodo_pago,paciente,cita_pagada) VALUES (%s,%s,%s,%s)",(email,metodo_pago,id,cita['id']))
+    conn.commit()
+    conn.close()
+    cursor.close()
+
+    flash('Pago y Cita hechos correctamente','cita')
+    flash(f'El codigo de su Cita creada es: {id_cita}','cita')
+    return jsonify({
+        'status':'success',
+        'mensaje':f'Pago y Cita hechos correctamente, El código de su cita es:{id_cita}'
+    }), 201
+
+#------> API Consultar Citas Medicas <----------#
+@app.route('/api/cita/consultar', methods=['GET'])
+@token_requerido
+def buscar_cita():
+    datos_recibidos=request.get_json()
+    datos_interfaz=datos_recibidos.get('datos_interfaz')
+    
+    cursor=get_connection().cursor()
+    cursor.execute('SELECT * FROM citas WHERE id_paciente=%s',(datos_interfaz['id']))
+    citas=cursor.fetchall()
+    cursor.close()
+    return jsonify({
+        'status':'success',
+        'citas':citas
+    }), 200
+
+
+
 
 if __name__=='__main__':
     app.run(debug=True)
