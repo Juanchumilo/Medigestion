@@ -1370,7 +1370,7 @@ def gestionar_cita(id):
             """
             conn=get_connection()
             cursor=conn.cursor()
-            cursor.execute(sql_ocupados, (fecha_str, hora_str))
+            cursor.execute(sql_ocupados, (fecha, hora))
             ocupados_raw = cursor.fetchall()
             cursor.close(); conn.close()
             ocupados_ids = {r['medico_id'] for r in ocupados_raw}  # set de ids ocupados
@@ -1947,6 +1947,7 @@ def api_login():
 @token_requerido
 def api_efectuar_pago():
     datos_recibidos=request.get_json()
+    id=datos_recibidos.get('paciente_id')
     id_cita=datos_recibidos.get('id_cita')
     
     email=datos_recibidos.get('email')
@@ -1954,7 +1955,7 @@ def api_efectuar_pago():
     conn=get_connection()
     cursor=conn.cursor()
 
-    cursor.execute("INSERT INTO efectuar_pago (email,metodo_pago,paciente,cita_pagada) VALUES (%s,%s,%s,%s)",(email,metodo_pago,id,cita['id']))
+    cursor.execute("INSERT INTO efectuar_pago (email,metodo_pago,paciente,cita_pagada) VALUES (%s,%s,%s,%s)",(email,metodo_pago,id,id_cita))
     conn.commit()
     conn.close()
     cursor.close()
@@ -1979,7 +1980,7 @@ def buscar_cita():
     cursor.close()
     return jsonify({
         'status':'success',
-        'citas':citas
+        'citas': citas
     }), 200
 
 
