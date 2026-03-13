@@ -817,10 +817,6 @@ def editar_datos(id):
         finally:
             cursor.close()
             conn.close()
-        cursor.execute("UPDATE pacientes SET nombre=%s,apellido=%s,tipo_documento=%s,documento=%s,fecha_nacimiento=%s,genero=%s,telefono=%s,email=%s,rh=%s,password=%s WHERE id=%s",(data[0],data[1],data[2],data[3],data[4],data[5],data[6],data[7],data[8],data[9],id))
-        conn.commit()
-        cursor.close()
-        conn.close()
 
         # ACTUALIZAR LA SESIÓN 
         session['usuario']['nombre'] = data[0]
@@ -1634,6 +1630,57 @@ def page_not_found(e):
 
 
 ########################################################    API's (¡¡¡¡Aún no se implementan!!!!)   ######################################################################
+
+################===   GET   ===#################
+
+#------> API Consultar Horas Disponibles para Crear una Cita <----------#
+@app.route('/api/horas_disponibles', methods=['GET'])
+@token_requerido
+def api_horas_disponibles():
+    #Se recibe la fecha
+    fecha_str = request.args.get('fecha')
+    
+    if not fecha_str:
+        return jsonify({
+            "status": "error", 
+            "mensaje": "Debes enviar una fecha válida"
+        }), 400
+        
+    try:
+        horas = obtener_slots_libres(fecha_str=fecha_str)
+        
+        #Devuelves JSON con éxito
+        return jsonify({
+            "status": "success",
+            "fecha_consultada": fecha_str,
+            "horas_libres": horas
+        }), 200
+        
+    except Exception as e:
+        #Por si la base de datos falla o la fecha tiene mal formato
+        return jsonify({
+            "status": "error",
+            "mensaje": str(e)
+        }), 500
+
+
+#------> API Consultar Citas Medicas <----------#
+@app.route('/api/cita/consultar', methods=['GET'])
+@token_requerido
+def buscar_cita():
+    datos_recibidos=request.get_json()
+    datos_interfaz=datos_recibidos.get('datos_interfaz')
+    
+    cursor=get_connection().cursor()
+    cursor.execute('SELECT * FROM citas WHERE id_paciente=%s',(datos_interfaz['id']))
+    citas=cursor.fetchall()
+    cursor.close()
+    return jsonify({
+        'status':'success',
+        'citas': citas
+    }), 200
+
+
 #------> API Horarios Medicos <----------#
 @app.route('/api/horarios_medicos', methods=['GET'])
 @token_requerido
@@ -1644,6 +1691,11 @@ def api_horarios():
     horarios_medicos=cursor.fetchall()
     conn.close()
     return jsonify(horarios_medicos)
+
+
+
+
+################===   POST   ===################
 
 #------> API Crear Cita Medica <----------#
 @app.route('/api/cita/crear', methods=['POST'])
@@ -1828,35 +1880,6 @@ def api_crear_cita():
             "mensaje": "Cita no creada correctamente, intente nuevamente"
         }), 400
 
-#------> API Consultar Horas Disponibles para Crear una Cita <----------#
-@app.route('/api/horas_disponibles', methods=['GET'])
-@token_requerido
-def api_horas_disponibles():
-    #Se recibe la fecha
-    fecha_str = request.args.get('fecha')
-    
-    if not fecha_str:
-        return jsonify({
-            "status": "error", 
-            "mensaje": "Debes enviar una fecha válida"
-        }), 400
-        
-    try:
-        horas = obtener_slots_libres(fecha_str=fecha_str)
-        
-        #Devuelves JSON con éxito
-        return jsonify({
-            "status": "success",
-            "fecha_consultada": fecha_str,
-            "horas_libres": horas
-        }), 200
-        
-    except Exception as e:
-        #Por si la base de datos falla o la fecha tiene mal formato
-        return jsonify({
-            "status": "error",
-            "mensaje": str(e)
-        }), 500
 
 #------> API Inicio de Sesion <----------#
 @app.route('/api/login', methods=['POST'])
@@ -1888,19 +1911,19 @@ def api_login():
     cursor.execute("SELECT * FROM pacientes WHERE email=%s", (correo,))
     usuario = cursor.fetchone()
     if usuario:
-        rol_asignado = 'paciente'
+        rol_asignado = 'pacientes'
         
     if not usuario:
         cursor.execute("SELECT * FROM medicos WHERE email=%s", (correo,))
         usuario = cursor.fetchone()
         if usuario:
-            rol_asignado = 'medico'
+            rol_asignado = 'medicos'
 
     if not usuario:
         cursor.execute("SELECT * FROM admintb WHERE email=%s", (correo,))
         usuario = cursor.fetchone()
         if usuario:
-            rol_asignado = 'admin'
+            rol_asignado = 'admintb'
 
     cursor.close()
     conn.close()
@@ -1942,6 +1965,7 @@ def api_login():
         # Contraseña incorrecta
         return jsonify({'status':'error', 'mensaje':'Correo o contraseña incorrecta'}), 401
 
+
 #------> API Efectuar Pago <----------#
 @app.route('/api/cita/pago', methods=['POST'])
 @token_requerido
@@ -1967,23 +1991,335 @@ def api_efectuar_pago():
         'mensaje':f'Pago y Cita hechos correctamente, El código de su cita es:{id_cita}'
     }), 201
 
-#------> API Consultar Citas Medicas <----------#
-@app.route('/api/cita/consultar', methods=['GET'])
+
+#------> API Editar Datos Usuario <----------#
+@app.route('/api/editar/usuario', methods=['GET','POST'])
 @token_requerido
-def buscar_cita():
+def api_editar_usuario():
     datos_recibidos=request.get_json()
-    datos_interfaz=datos_recibidos.get('datos_interfaz')
+    data=datos_recibidos.get('data')
+    rol=datos_recibidos.get('rol_asignado')
+    id=datos_recibidos.get('id')
+
+    if request.method== 'GET':
+        cursor=get_connection().cursor()
+        cursor.execute(f'SELECT * FROM {rol} WHERE id=%s',(id))
+        datos=cursor.fetchone()
+        cursor.close()
+
+        return jsonify({
+            'status':'success',
+            'datos': datos
+        }), 200
+
+    if request.method=='POST':
+
+        if datos_recibidos.get('password') != datos_recibidos.get('confirm_password'):
+            return jsonify({
+                'statis':'error',
+                'mensaje':'Las contraseñas no coinciden'
+            }), 401
+        
+        # Opcion 1. el post es de parte del admin
+        if rol=='admintb':
+            try:
+                conn=get_connection()
+                cursor=conn.cursor()
+                cursor.execute("UPDATE admintb SET nombre=%s,apellido=%s,email=%s,password=%s WHERE id=%s",(data[0].strip().upper(),data[1].strip().upper(),data[2],data[3],id))
+                conn.commit()
+
+            except pymysql.err.IntegrityError as e:
+                error_msg = str(e)
+
+                if "admintb.email" in error_msg:
+                    return jsonify({
+                        'status':'error',
+                        'mensaje': 'El correo ingresado ya esta registrado a otra cuenta'
+                    })
+                else:
+                    return jsonify({
+                        'status':'error',
+                        'mensaje': str(e)
+                    })
+            finally:
+                cursor.close()
+                conn.close()
+        
+        # Opcion 2. el post es de parte del paciente
+        elif rol=='pacientes':
+            try:
+                conn=get_connection()
+                cursor=conn.cursor()
+                cursor.execute("UPDATE pacientes SET nombre=%s,apellido=%s,tipo_documento=%s,documento=%s,fecha_nacimiento=%s,genero=%s,telefono=%s,email=%s,rh=%s,password=%s WHERE id=%s",(data[0].strip().upper(),data[1].strip().upper(),data[2],data[3],data[4],data[5],data[6],data[7],data[8],data[9],id))
+                conn.commit()
+
+            except pymysql.err.IntegrityError as e:
+                e=str(e)
+                if "pacientes.telefono" in e:
+                    return jsonify({
+                        'status':'error',
+                        'mensaje':'El teléfono ingresado ya está registrado'
+                    }), 401
+
+                elif "pacientes.email" in e:
+                    return jsonify({
+                        'status':'error',
+                        'mensaje':'El correo ingresado ya está registrado'
+                    }), 401
+
+                elif "pacientes.documento" in e:
+                    return jsonify({
+                        'status':'error',
+                        'mensaje':'El documento ingresado ya está registrado'
+                    }), 401
+
+                else:
+                    return jsonify({
+                        'status':'error',
+                        'mensaje':str(e)
+                    }), 400
+            finally:
+                cursor.close()
+                conn.close()
+
+        # Opcion 3. el post es de parte del medico
+        elif rol=='medicos':
+            try:
+                cursor.execute("UPDATE medicos SET nombre=%s,apellido=%s,telefono=%s,email=%s,password=%s,documento=%s WHERE id=%s",(data[0].strip().upper(),data[1].strip().upper(),data[2],data[3],data[4],data[5],id))
+                conn.commit()
+
+            except pymysql.err.IntegrityError as e:
+                error_msg = str(e)
+
+                if "medicos.telefono" in error_msg:
+                    return jsonify({
+                        'status':'error',
+                        'mensaje':'El teléfono ingresado ya está registrado'
+                    }), 401
+
+                elif "medicos.email" in error_msg:
+                    return jsonify({
+                        'status':'error',
+                        'mensaje':'El correo ingresado ya está registrado'
+                    }), 401
+
+                elif "medicos.documento" in error_msg:
+                    return jsonify({
+                        'status':'error',
+                        'mensaje':'El documento ingresado ya está registrado'
+                    }), 401
+
+                else:
+                    return jsonify({
+                        'status':'error',
+                        'mensaje': error_msg
+                    }), 400
+            finally:
+                cursor.close()
+                conn.close()
+            
+        return jsonify({
+            'status':'success',
+            'mensaje':'Datos editados con éxito'
+        })
+
+
+#------> API Atencion al Cliente <---------#
+@app.route('/api/atencion_cliente', methods=['POST'])
+def api_atencion_cliente():
+    datos_recibidos=request.get_json()
+    nombre = datos_recibidos.get('nombre').strip().upper()
+    correo = datos_recibidos.get('correo')
+    motivo = datos_recibidos.get('motivo')
+    mensaje = datos_recibidos.get('mensaje').capitalize()
+
+    # Crear contenido del correo
+    asunto = f"Nuevo mensaje de soporte - {motivo}"
+    cuerpo = f"""
+    Has recibido un nuevo mensaje desde MediGestión:
+
+    Nombre: {nombre}
+    Correo: {correo}
+    Motivo: {motivo}
+    Mensaje:
+    {mensaje}
+    """
+
+    # Construir correo
+    msg = MIMEMultipart()
+    msg['From'] = EMAIL_USER
+    msg['To'] = EMAIL_USER
+    msg['Subject'] = asunto
+    msg.attach(MIMEText(cuerpo, 'plain'))
+
+    # Enviar correo con SMTP
+    try:
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(EMAIL_USER, EMAIL_PASS)
+        server.sendmail(EMAIL_USER, EMAIL_USER, msg.as_string())
+        server.quit()
+
+        return jsonify({
+            'status':'success',
+            'mensaje':'Mensaje enviado exitosamente'
+        })
+    except Exception as e:
+        return jsonify({
+            'status':'error',
+            'mensaje':f'Error enviando correo: {str(e)}'
+        })
+
+
+#------> API Registrarse <---------#
+@app.route('/api/regitrarse', methods=['POST'])
+def api_registrarse():
+    datos_recibidos=request.get_json()
+    if datos_recibidos.get('password')==datos_recibidos.get('confirm_password'):
+        nombre=datos_recibidos.get('name').strip().upper()
+        apellido=datos_recibidos.get('last_name').strip().upper()
+        email=datos_recibidos.get('email')
+        fecha_nacimiento=datos_recibidos.get('birthdate')
+        telefono=datos_recibidos.get('phone')
+        tipo_documento=datos_recibidos.get('tipo_documento')
+        documento=datos_recibidos.get('documento')
+        rh=datos_recibidos.get('rh')
+        genero=datos_recibidos.get('genero')
+        password=bcrypt.hashpw(datos_recibidos.get('password').encode(), bcrypt.gensalt())
+
+        conn=get_connection()
+        cursor=conn.cursor()
+        try:
+            cursor.execute('INSERT INTO pacientes (nombre,apellido,email,fecha_nacimiento,telefono,tipo_documento,documento,rh,genero,password) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',(nombre,apellido,email,fecha_nacimiento,telefono,tipo_documento,documento,rh,genero,password))
+            conn.commit()
+
+        except pymysql.err.IntegrityError as e:
+            error_msg = str(e)
+
+            if "pacientes.telefono" in error_msg:
+                return jsonify({
+                    'status':'error',
+                    'mensaje':'El teléfono ingresado ya está registrado'
+                })
+
+            elif "pacientes.email" in error_msg:
+                return jsonify({
+                    'status':'error',
+                    'mensaje':'El correo ingresado ya está registrado'
+                })
+
+            elif "pacientes.documento" in error_msg:
+                return jsonify({
+                    'status':'error',
+                    'mensaje':'El documento ingresado ya está registrado'
+                })
+
+            else:
+                return jsonify({
+                    'status':'error',
+                    'mensaje': error_msg
+                })
+
+        finally:
+            cursor.close()
+            conn.close()
+
+        return jsonify({
+                    'status':'success',
+                    'mensaje':'Paciente registrado correctamente'
+                })
+    else:
+        return jsonify({
+                'status':'error',
+                'mensaje':'El las contraseñas no coinciden'
+            })
+
+
+#------> API Forgot Password <---------#
+@app.route('/api/forgot_password', methods=['GET','POST'])
+def api_forgot_password():
+    datos_recibidos=request.get_json()
+    paso = datos_recibidos.get('paso')
+
+    # PASO 1: validar correo ##########
+    if paso == 'correo':
+        email = datos_recibidos.get('email')
+
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT id FROM pacientes WHERE email = %s',(email,))
+        usuario = cursor.fetchone()
+        conn.close()
+        cursor.close()
+
+        if not usuario:
+            return jsonify({
+                'status':'error',
+                'mensaje':'No existe una cuenta asociada a ese correo'
+            })
+
+        #Se envia en codigo al correo
+        codigo = generar_codigo()
+        fecha=datetime.now() + datetime.timedelta(minutes=15)
+
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute('INSERT INTO recuperacion_pass codigo=%s,expiracion=%s WHERE email=%s',(codigo,fecha,email))
+        conn.commit()
+        conn.close()
+        cursor.close()
+
+        enviar_codigo_email(email, codigo)
+
+        return jsonify({
+            'status':'success',
+            'mensaje':'Paso 1',
+            'mostrar_codigo': True,
+            'email': email,
+            'primera': False
+        })
     
-    cursor=get_connection().cursor()
-    cursor.execute('SELECT * FROM citas WHERE id_paciente=%s',(datos_interfaz['id']))
-    citas=cursor.fetchall()
-    cursor.close()
-    return jsonify({
-        'status':'success',
-        'citas': citas
-    }), 200
+
+    # PASO 2: validar código ############
+    elif paso == 'codigo':
+        codigo = datos_recibidos.get('codigo').strip()
+        email = datos_recibidos.get('email')
+
+        #Consultamos el codigo en la db para luego verificarlo
+        cursor=get_connection().cursor()
+        cursor.execute('SELECT * FROM recuperacion_pass WHERE codigo=%s',(codigo))
 
 
+        if not cursor.fetchone() and cursor.fetchone()['expiracion']<datetime.now():
+            return jsonify({
+                'status':'error',
+                'mensaje':'Código Incorrecto o caducado'
+            })
+
+        return jsonify({
+            'status':'success',
+            'mensaje':'Codigo validado correctamente',
+            'mostrar_password': True,
+            'email': email
+        })
+    
+
+
+    # PASO 3: Establecer nueva contraseña #######
+    elif paso == 'new-password':
+        if datos_recibidos.get('new-password') == datos_recibidos.get('confirm_password'):
+            conn=get_connection()
+            cursor=conn.cursor()
+            password_nueva = bcrypt.hashpw(datos_recibidos.get('new-password').encode(), bcrypt.gensalt())
+            cursor.execute('UPDATE pacientes SET password=%s WHERE email=%s',(password_nueva,email))
+            conn.commit()
+            conn.close()
+            cursor.close()
+
+            return jsonify({
+                'status':'success',
+                'mensaje':'Su contraseña ha sido restablecida correctamente'
+            })
 
 
 if __name__=='__main__':
