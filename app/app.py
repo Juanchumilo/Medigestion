@@ -1690,7 +1690,7 @@ def api_horarios():
     cursor.execute("SELECT m.nombre,m.apellido,h.id AS horario_id,h.hora_ingreso,h.hora_ingreso_tp,h.hora_salida,h.hora_salida_tp,h.horario FROM horario_medicos h JOIN medicos m ON h.medico_id = m.id;")
     horarios_medicos=cursor.fetchall()
     conn.close()
-    return jsonify(horarios_medicos)
+    return jsonify(horarios_medicos), 200
 
 
 
@@ -1710,7 +1710,7 @@ def api_crear_cita():
 
     # Api ajustada para si el admin es quien usa la api 
     # (mismo funcionamiento al de paciente a excepcion de la posibilidad de escoger tanto medico,consultorio y paciente)
-    if datos_interfaz['rol_asignado']=='admin':
+    if datos_interfaz['rol_asignado']=='admintb':
         consultorio=datos_recibidos.get('consultorio')
         medico_escogido=datos_recibidos.get('medico_escogido')
 
@@ -1888,7 +1888,10 @@ def api_login():
 
     # Verificacion de envio de credenciales
     if not credenciales or not credenciales.get('correo') or not credenciales.get('password'):
-        return jsonify({"status": "error", "mensaje": "Faltan datos"}), 400
+        return jsonify({
+            'status': 'error', 
+            'mensaje': 'Faltan datos'
+            }), 400
     
     correo = credenciales.get('correo')
     password = credenciales.get('password').encode()
@@ -1930,7 +1933,10 @@ def api_login():
 
     # Si después de buscar en las 3 tablas no existe, lo rechazamos
     if not usuario:
-        return jsonify({'status':'error', 'mensaje':'Correo o contraseña incorrecta'}), 401
+        return jsonify({
+            'status':'error', 
+            'mensaje':'Correo o contraseña incorrecta'
+            }), 401
 
     # Si existe, verificamos la contraseña
     hashed_password = usuario['password'].encode() if isinstance(usuario['password'], str) else usuario['password']
@@ -1963,7 +1969,10 @@ def api_login():
 
     else:
         # Contraseña incorrecta
-        return jsonify({'status':'error', 'mensaje':'Correo o contraseña incorrecta'}), 401
+        return jsonify({
+            'status':'error', 
+            'mensaje':'Correo o contraseña incorrecta'
+            }), 401
 
 
 #------> API Efectuar Pago <----------#
@@ -2035,12 +2044,12 @@ def api_editar_usuario():
                     return jsonify({
                         'status':'error',
                         'mensaje': 'El correo ingresado ya esta registrado a otra cuenta'
-                    })
+                    }), 401
                 else:
                     return jsonify({
                         'status':'error',
                         'mensaje': str(e)
-                    })
+                    }), 400
             finally:
                 cursor.close()
                 conn.close()
@@ -2121,7 +2130,7 @@ def api_editar_usuario():
         return jsonify({
             'status':'success',
             'mensaje':'Datos editados con éxito'
-        })
+        }), 201
 
 
 #------> API Atencion al Cliente <---------#
@@ -2163,12 +2172,12 @@ def api_atencion_cliente():
         return jsonify({
             'status':'success',
             'mensaje':'Mensaje enviado exitosamente'
-        })
+        }), 200
     except Exception as e:
         return jsonify({
             'status':'error',
             'mensaje':f'Error enviando correo: {str(e)}'
-        })
+        }), 500
 
 
 #------> API Registrarse <---------#
@@ -2200,25 +2209,25 @@ def api_registrarse():
                 return jsonify({
                     'status':'error',
                     'mensaje':'El teléfono ingresado ya está registrado'
-                })
+                }), 401
 
             elif "pacientes.email" in error_msg:
                 return jsonify({
                     'status':'error',
                     'mensaje':'El correo ingresado ya está registrado'
-                })
+                }), 401
 
             elif "pacientes.documento" in error_msg:
                 return jsonify({
                     'status':'error',
                     'mensaje':'El documento ingresado ya está registrado'
-                })
+                }), 401
 
             else:
                 return jsonify({
                     'status':'error',
                     'mensaje': error_msg
-                })
+                }), 400
 
         finally:
             cursor.close()
@@ -2227,16 +2236,16 @@ def api_registrarse():
         return jsonify({
                     'status':'success',
                     'mensaje':'Paciente registrado correctamente'
-                })
+                }), 201
     else:
         return jsonify({
                 'status':'error',
                 'mensaje':'El las contraseñas no coinciden'
-            })
+            }), 401
 
 
 #------> API Forgot Password <---------#
-@app.route('/api/forgot_password', methods=['GET','POST'])
+@app.route('/api/forgot_password', methods=['POST'])
 def api_forgot_password():
     datos_recibidos=request.get_json()
     paso = datos_recibidos.get('paso')
@@ -2256,7 +2265,7 @@ def api_forgot_password():
             return jsonify({
                 'status':'error',
                 'mensaje':'No existe una cuenta asociada a ese correo'
-            })
+            }), 401
 
         #Se envia en codigo al correo
         codigo = generar_codigo()
@@ -2277,7 +2286,7 @@ def api_forgot_password():
             'mostrar_codigo': True,
             'email': email,
             'primera': False
-        })
+        }), 200
     
 
     # PASO 2: validar código ############
@@ -2294,14 +2303,14 @@ def api_forgot_password():
             return jsonify({
                 'status':'error',
                 'mensaje':'Código Incorrecto o caducado'
-            })
+            }), 401
 
         return jsonify({
             'status':'success',
             'mensaje':'Codigo validado correctamente',
             'mostrar_password': True,
             'email': email
-        })
+        }), 200
     
 
 
@@ -2319,7 +2328,385 @@ def api_forgot_password():
             return jsonify({
                 'status':'success',
                 'mensaje':'Su contraseña ha sido restablecida correctamente'
-            })
+            }), 201
+
+
+#------> API Cambiar Horario Medicos <---------#
+@app.route('/api/horario_medicos/editar', methods=['GET','POST'])
+@token_requerido
+def api_horario_medicos_editar():
+    try:
+        conn=get_connection()
+        cursor=conn.cursor()
+    except Exception as e:
+        return jsonify({
+            'status':'error',
+            'mensaje':str(e)
+        }), 500
+    
+    # Buscar Horario actual del medico
+    datos_recibidos=request.get_json()
+    cursor.execute("SELECT * FROM horario_medicos WHERE medico_id=%s",(datos_recibidos.get('id')))
+    horario=cursor.fetchone()
+    conn.close()
+    cursor.close()
+
+    if request.method == 'POST':
+        hora_ingreso=datos_recibidos.get('hora_ingreso')
+        hora_ingreso_tp=datos_recibidos.get('hora_ingreso_tp')
+        hora_salida=datos_recibidos.get('hora_salida')
+        hora_salida_tp=datos_recibidos.get('hora_salida_tp')
+        horario=datos_recibidos.get('horario')
+
+        conn=get_connection()
+        cursor=conn.cursor()
+        cursor.execute("UPDATE horario_medicos SET hora_ingreso=%s,hora_ingreso_tp=%s,hora_salida=%s,hora_salida_tp=%s,horario=%s WHERE medico_id=%s",(hora_ingreso,hora_ingreso_tp,hora_salida,hora_salida_tp,horario,id))
+        conn.commit()
+
+        conn.close()
+        cursor.close()
+
+        return jsonify({
+            'status':'success',
+            'mensaje':'Horario Actualizado Correctamente'
+        }), 201
+
+
+#------> API Generar Reporte Medico <---------#
+@app.route('/api/generar_reporte', methods=['GET','POST'])
+@token_requerido
+def api_generar_reporte():
+
+
+    if request.method=='POST':
+        motivo=datos_recibidos.get('motivo').capitalize()
+        observaciones=datos_recibidos.get('observaciones')
+        estado='Completada'
+
+        conn=get_connection()
+        cursor=conn.cursor()
+        cursor.execute("UPDATE citas SET motivo=%s,observaciones=%s,estado=%s WHERE id=%s",(motivo,observaciones,estado,id))
+        conn.commit()
+        conn.close()
+        cursor.close()
+
+
+        flash('Reporte generado con exito','reporte')
+
+        return jsonify({
+            'status':'success',
+            'mensaje':'Reporte Generado con Éxito'
+        }), 201
+
+    datos_recibidos=request.get_json()
+    id=datos_recibidos.get('id_cita')
+
+    conn=get_connection()
+    cursor=conn.cursor()
+    sql = """
+    SELECT c.id, c.fecha, c.hora, c.motivo, c.estado, c.consultorio, c.observaciones,
+        p.id AS paciente_id, p.nombre AS paciente_nombre, p.apellido AS paciente_apellido,
+        m.id AS medico_id, m.nombre AS medico_nombre, m.apellido AS medico_apellido
+    FROM citas c
+    JOIN pacientes p ON c.paciente_id = p.id
+    JOIN medicos m ON c.medico_id = m.id
+    WHERE c.id = %s 
+    """
+    cursor.execute(sql,id)
+    cita=cursor.fetchone()
+    conn.close()
+    cursor.close()
+
+    return jsonify(cita), 200
+
+
+#------> API Editar Cita Medica <---------#
+@app.route('/api/cita/editar', methods=['GET','POST'])
+@token_requerido
+def api_cita_editar():
+    datos_recibidos=request.get_json()
+    id=datos_recibidos.get('id_cita')
+
+
+    if datos_recibidos.get('rol_asignado') == 'pacientes':
+
+        if request.method == 'POST':
+            fecha = (datos_recibidos.get('fecha').replace("/", "-"))
+            hora = datos_recibidos.get('hora')
+            motivo = datos_recibidos.get('motivo').capitalize()
+            accion = datos_recibidos.get('accion')
+            
+
+
+            # 2) convertir la fecha y sacar día de la semana (lunes=0 ... domingo=6)
+            try:
+                fecha_obj = datetime.strptime(fecha, "%Y-%m-%d")
+                dia_semana = fecha_obj.weekday()
+            except Exception as e:
+                return jsonify({
+                    'status':'error',
+                    'mensaje': str(e)
+                }), 400
+
+
+            # Si la cita sigue programada → actualizar
+            if accion == 'editar':
+                conn = get_connection()
+                cursor = conn.cursor()
+
+                sql_medicos = """
+                        SELECT m.id, m.nombre, m.apellido
+                        FROM medicos m
+                        JOIN horario_dias hd ON hd.medico_id = m.id
+                        WHERE hd.dia_semana = %s
+                        """
+                cursor.execute(sql_medicos, (dia_semana,))
+                medicos = cursor.fetchall()
+                cursor.close(); conn.close()
+
+                if not medicos:
+                    return jsonify({
+                        'status':'error',
+                        'mensaje':'No hay médicos que trabajen ese dia'
+                    }), 400
+
+                # excluir médicos ya ocupados en ESA fecha y hora 
+                sql_ocupados = """
+                SELECT medico_id FROM citas
+                WHERE fecha = %s AND hora = %s
+                """
+                conn=get_connection()
+                cursor=conn.cursor()
+                cursor.execute(sql_ocupados, (fecha, hora))
+                ocupados_raw = cursor.fetchall()
+                cursor.close(); conn.close()
+                ocupados_ids = {r['medico_id'] for r in ocupados_raw}  # set de ids ocupados
+
+                disponibles = [m for m in medicos if m['id'] not in ocupados_ids]
+
+                if not disponibles:
+                    flash("Ese día/hora no quedan médicos disponibles",'error')
+                    return jsonify({
+                        'status':'error',
+                        'mensaje':'Ese día/hora no habrán médicos disponibles'
+                    })
+
+
+
+                # Editar datos de la cita (solo despues de las anteriores confirmaciones)
+                try:
+                    conn=get_connection()
+                    cursor=conn.cursor()
+                    cursor.execute('UPDATE citas SET fecha=%s, hora=%s, motivo=%s WHERE id=%s',(fecha, hora, motivo, id))
+                    conn.commit()
+                    flash("Cita editada correctamente", "cita")
+                    return redirect(url_for('paciente', id=session['usuario']['id']))
+
+                except pymysql.err.IntegrityError as e:
+                    flash("Ocurrió un error inesperado. Intenta nuevamente.", "error")
+
+                    return redirect(url_for("paciente",id=session['usuario']['id']))
+
+                finally:
+                    cursor.close()
+                    conn.close()
+                    
+
+            # Si la cita fue cancelada → eliminar
+            elif accion == 'eliminar':
+                conn = get_connection()
+                cursor = conn.cursor()
+
+                try:
+                    # 1. Eliminar pagos relacionados con la cita
+                    cursor.execute("DELETE FROM efectuar_pago WHERE cita_pagada = %s", (id,))
+
+                    # 2. Eliminar la cita
+                    cursor.execute("DELETE FROM citas WHERE id = %s", (id,))
+
+                    conn.commit()
+
+                except Exception as e:
+                    conn.rollback()
+                    flash("Error al eliminar la cita: " + str(e))
+
+                finally:
+                    cursor.close()
+                    conn.close()
+
+                flash('Cita eliminada correctamente','cita')
+                return redirect(url_for('paciente', id=session['usuario']['id']))
+        # Consultar datos actuales de la cita
+        cursor=get_connection().cursor()
+        cursor.execute('SELECT * FROM citas WHERE id=%s',(id))
+        cita=cursor.fetchone()
+        cursor.close()
+
+        return jsonify(cita), 200
+
+
+    # ===================== Api llamada por un Admin ======================== #
+    if datos_recibidos.get('rol_asignado') == 'admintb':
+
+        if request.method=='POST':
+            accion = datos_recibidos.get('accion')
+            if accion == 'editar':
+                paciente_seleccionado=datos_recibidos.get('paciente_seleccionado')
+                medico_seleccionado=datos_recibidos.get('medico_seleccionado')
+                consultorio_seleccionado=datos_recibidos.get('consultorio_seleccionado')
+                fecha=(datos_recibidos.get('fecha').replace("/", "-"))
+                hora=datos_recibidos.get('hora')
+                motivo=datos_recibidos.get('motivo').capitalize()
+                observaciones=datos_recibidos.get('observaciones')
+
+                # 2) convertir la fecha y sacar día de la semana (lunes=0 ... domingo=6)
+                try:
+                    fecha_obj = datetime.strptime(fecha, "%Y-%m-%d")
+                    dia_semana = fecha_obj.weekday()
+                except Exception as e:
+                    return jsonify({
+                        'status':'error',
+                        'mensaje':str(e)
+                    }), 400
+
+                conn = get_connection()
+                cursor = conn.cursor()
+
+                sql_medicos = """
+                        SELECT m.id, m.nombre, m.apellido
+                        FROM medicos m
+                        JOIN horario_dias hd ON hd.medico_id = m.id
+                        WHERE hd.dia_semana = %s
+                        """
+                cursor.execute(sql_medicos, (dia_semana,))
+                medicos = cursor.fetchall()
+                cursor.close(); conn.close()
+
+                if not medicos:
+                    return jsonify({
+                        'status':'error',
+                        'mensaje':'No hay médicos que trabajen ese día'
+                    }), 400
+
+                # excluir médicos ya ocupados en ESA fecha y hora 
+                sql_ocupados = """
+                SELECT medico_id FROM citas
+                WHERE fecha = %s AND hora = %s
+                """
+                conn=get_connection()
+                cursor=conn.cursor()
+                cursor.execute(sql_ocupados, (fecha, hora))
+                ocupados_raw = cursor.fetchall()
+                cursor.close(); conn.close()
+                ocupados_ids = {r['medico_id'] for r in ocupados_raw}  # set de ids ocupados
+
+                disponibles = [m for m in medicos if m['id'] not in ocupados_ids]
+
+                if not disponibles:
+                    return jsonify({
+                        'status':'error',
+                        'mensaje':'Ese día/hora no quedan médicos disponibles'
+                    }), 400
+                
+
+                # Editar datos de la cita (solo despues de las anteriores confirmaciones)
+                try:
+                    sql='UPDATE citas SET paciente_id=%s,medico_id=%s,consultorio=%s,motivo=%s,fecha=%s,hora=%s,observaciones=%s WHERE id=%s'
+                    cursor.execute(sql,(paciente_seleccionado,medico_seleccionado,consultorio_seleccionado,motivo,fecha,hora,observaciones,id))
+                    conn.commit()
+
+                except pymysql.err.IntegrityError as e:
+
+                    flash("Ocurrió un error inesperado. Intenta nuevamente.", "error")
+                    return jsonify({
+                        'status':'error',
+                        'mensaje':str(e)
+                    }), 500
+
+                finally:
+                    cursor.close()
+                    conn.close()
+
+                return jsonify({
+                        'status':'success',
+                        'mensaje':'Cita Editada Correctamente'
+                    }), 201
+            
+
+            elif accion=='eliminar':
+                conn = get_connection()
+                cursor = conn.cursor()
+
+                try:
+                    # 1. Eliminar pagos relacionados con la cita
+                    cursor.execute("DELETE FROM efectuar_pago WHERE cita_pagada = %s", (id,))
+                    # 2. Eliminar la cita
+                    cursor.execute("DELETE FROM citas WHERE id = %s", (id,))
+                    conn.commit()
+                except Exception as e:
+                    conn.rollback()
+                    return jsonify({
+                        'status':'error',
+                        'mensaje':str(e)
+                    }), 500
+
+                finally:
+                    cursor.close()
+                    conn.close()
+
+                return jsonify({
+                        'status':'success',
+                        'mensaje':'Cita Eliminada Correctamente'
+                    }), 200
+        
+        #====== Valores predefinidos ['GET'] ======#
+        conn=get_connection()
+        cursor=conn.cursor()
+        sql = """
+        SELECT c.id, c.fecha, c.hora, c.motivo, c.estado, c.consultorio, c.observaciones,
+            p.id AS paciente_id, p.nombre AS paciente_nombre, p.apellido AS paciente_apellido,
+            m.id AS medico_id, m.nombre AS medico_nombre, m.apellido AS medico_apellido
+        FROM citas c
+        JOIN pacientes p ON c.paciente_id = p.id
+        JOIN medicos m ON c.medico_id = m.id
+        WHERE c.id = %s 
+        """
+
+        cursor.execute(sql,(id))
+        datos_cita=cursor.fetchone()
+        conn.close()
+        cursor.close()
+
+        #====== Lista de Pacientes ======#
+        conn=get_connection()
+        cursor=conn.cursor()
+        cursor.execute('SELECT pacientes.nombre,pacientes.apellido,pacientes.id FROM pacientes')
+        pacientes=cursor.fetchall()
+        conn.close()
+        cursor.close()
+
+        #====== Lista de Medicos ======#
+        conn=get_connection()
+        cursor=conn.cursor()
+        cursor.execute('SELECT medicos.nombre,medicos.apellido,medicos.id FROM medicos')
+        medicos=cursor.fetchall()
+        conn.close()
+        cursor.close()
+
+        #====== Lista de Consultorios ======#
+        conn=get_connection()
+        cursor=conn.cursor()
+        cursor.execute('SELECT consultorio.nombre,consultorio.id FROM consultorio')
+        consultorios=cursor.fetchall()
+        conn.close()
+        cursor.close()
+
+        return jsonify(
+            consultorios,
+            medicos,
+            pacientes,
+            datos_cita,
+            ), 200
 
 
 if __name__=='__main__':
