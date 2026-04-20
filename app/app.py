@@ -3,7 +3,7 @@ from db import get_connection
 import bcrypt,os, random, pymysql, smtplib,string, jwt
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from datetime import date,datetime,timedelta
+from datetime import date,datetime,timedelta,timezone
 import funciones_adicionales as fun_ad
 from email.message import EmailMessage
 from functools import wraps
@@ -1700,12 +1700,12 @@ def api_horarios():
 #------> API Crear Cita Medica <----------#
 @app.route('/api/cita/crear', methods=['POST'])
 @token_requerido
-def api_crear_cita():
+def api_crear_cita(datos_token):
     datos_recibidos = request.get_json()
-    id = datos_recibidos.get('id_paciente')
+    id = datos_token.get('id_usuario')
     fecha_str = datos_recibidos.get('fecha')
     hora_str = datos_recibidos.get('hora')
-    motivo = datos_recibidos.get('motivo')
+    motivo = datos_recibidos.get('motivo').capitalize()
     datos_interfaz=datos_recibidos.get('datos_interfaz')
 
     # Api ajustada para si el admin es quien usa la api 
@@ -1715,8 +1715,6 @@ def api_crear_cita():
         medico_escogido=datos_recibidos.get('medico_escogido')
 
         if len(citas_diarias) < len(fun_ad.config()):
-            hora_str = request.form["hora"]
-            motivo = request.form["motivo_cita"].capitalize()
 
             if fecha_str and hora_str and motivo:
 
@@ -1768,15 +1766,12 @@ def api_crear_cita():
 
     # --- Proceso de verificacion (medicos disponibles, citas maximas) ---
     cursor=get_connection().cursor()
-    fecha_str = request.form["fecha"]
     cursor.execute('SELECT COUNT(*) FROM citas WHERE fecha=%s',(fecha_str))
     citas_diarias= cursor.fetchall()[0]
     cursor.close()
 
     # Conteo de citas actuales
     if len(citas_diarias) < len(fun_ad.config()):
-        hora_str = request.form["hora"]
-        motivo = request.form["motivo_cita"].capitalize()
 
         if fecha_str and hora_str and motivo:
 
@@ -1946,7 +1941,7 @@ def api_login():
         datos_token = {
             "id_usuario": usuario['id'],
             "rol": rol_asignado,  
-            "exp": datetime.datetime.utcnow() + datetime.timedelta(days=1)
+            "exp": datetime.now(timezone.utc) + timedelta(days=1)
         }
         
         datos_interfaz = {
@@ -2710,4 +2705,4 @@ def api_cita_editar():
 
 
 if __name__=='__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0',port=5000,debug=True)
