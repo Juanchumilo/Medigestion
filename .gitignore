@@ -1,0 +1,13 @@
+# --- CACHÉ Y ENTORNO DE PYTHON (Backend) ---
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+instance/
+
+# --- VARIABLES DE ENTORNO ---
+.env
+.env.*
+*.env
