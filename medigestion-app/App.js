@@ -2,31 +2,36 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
-// Importas tus habitaciones (src)
-import Login from './src/Login';
-import Paciente from './src/Paciente';
+// Se Importan las plantillas (src)
+import Login from './src/Auth/Login';
+import InicioPaciente from './src/Paciente/InicioPaciente';
+import ListaMedicos from './src/Paciente/ListaMedicos';
+import EditarDatos from './src/Paciente/EditarDatos';
 
 const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
+
+// Esta es la barra de abajo
+function MisTabs() {
+  return (
+    <Tab.Navigator screenOptions={{ headerShown: false }}>
+      <Tab.Screen name="Inicio" component={InicioPaciente} />
+      <Tab.Screen name="Medicos" component={ListaMedicos} />
+      <Tab.Screen name="Datos" component={EditarDatos} />
+    </Tab.Navigator>
+  );
+}
+
 
 export default function App() {
   return (
     <NavigationContainer>
-      {/* initialRouteName define qué src carga primero */}
       <Stack.Navigator initialRouteName="Login">
-        
-        {/* Aquí registras tus src */}
-        <Stack.Screen 
-          name="Login" 
-          component={Login} 
-          options={{ headerShown: false }} // Esto oculta la barra superior fea
-        />
-        <Stack.Screen 
-          name="Paciente" 
-          component={Paciente} 
-          options={{ title: 'Apartado Paciente' }} // Título de la barra superior
-        />
-
+        <Stack.Screen name="Login" component={Login} options={{ headerShown: false }} />
+        {/* Cuando el login sea exitoso, navegamos a 'MainApp' */}
+        <Stack.Screen name="MainApp" component={MisTabs} options={{ headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

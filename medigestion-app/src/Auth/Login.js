@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, Button } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+//Import de funciones adicionales
+import { GlobalStyles } from '../../assets/theme/globalStyles.js';
 
 
-export default function LoginScreen() {
+export default function LoginScreen({navigation}) {
     //* Aquí guardamos lo que el usuario escribe*
     const [correo, setCorreo] = useState('');
     const [password, setPassword] = useState('');
@@ -31,11 +35,16 @@ export default function LoginScreen() {
 
             //* Si el servidor responde con 200 OK*
             if (response.ok) {
-                Alert.alert("¡Éxito!", "Token recibido: " + data.token.substring(0, 15) + "...");
-                navigation.navigate('Paciente'); 
+
+                //Guardamos la informacion que trae Flask
+                await AsyncStorage.setItem('mi_token', data.token);
+                // data.datos es un objeto, asi que lo cambiamos a string
+                await AsyncStorage.setItem('datos_usuario', JSON.stringify(data.datos));
+
+                navigation.replace('MainApp'); 
             }
             else {
-                //* Si mandas mala contraseña o el user no existe (Error 400/401)*
+                //* Si manda mal la contraseña o el user no existe (Error 400/401)*
                 Alert.alert("Error", data.message || "Credenciales inválidas");
             };
         }
@@ -43,16 +52,16 @@ export default function LoginScreen() {
         catch (error) {
         Alert.alert("Error de Conexión", "No se pudo conectar a Flask. Revisa que el servidor esté corriendo y la IP sea correcta.");
         console.error(error);
-        };
+        }
     };
 
     return (
-        <View style={styles.containerMain}> 
-            <View style={styles.container}>
-            <Image source={require('../assets/images/medigestion.png')} style={styles.logo} />
-            <Text style={styles.subtitle}>Inicia sesión para gestionar tus Citas</Text>
+        <View style={[GlobalStyles.container]}> 
+            <View style={[GlobalStyles.container]}>
+            <Image source={require('../../assets/images/medigestion.png')} style={[GlobalStyles.logo]}/>
+            <Text style={[GlobalStyles.subtitle]}>Inicia sesión para gestionar tus Citas Médicas</Text>
             <TextInput
-                style={styles.input}
+                style={[GlobalStyles.input]}
                 placeholder="Correo electrónico"
                 value={correo}
                 onChangeText={setCorreo}
@@ -60,20 +69,20 @@ export default function LoginScreen() {
                 autoCapitalize="none" //* Para que no ponga mayúscula inicial molesta*
             />
             <TextInput
-                style={styles.input}
+                style={[GlobalStyles.input]}
                 placeholder="Contraseña"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry //* Esto oculta la contraseña con punticos*
             />
-            <TouchableOpacity style={styles.button} onPress={handleLogin}>
-            <Text style={styles.buttonText}>Ingresar</Text>
+            <TouchableOpacity style={[GlobalStyles.buttonMain]} onPress={handleLogin}>
+            <Text style={[GlobalStyles.textbutton]}>Ingresar</Text>
             </TouchableOpacity>
-            <View style={styles.container2}>
+            <View style={[GlobalStyles.container]}>
 
-            <Text style={styles.subtitle}>¿No tienes una Cuenta?</Text>
+            <Text style={[GlobalStyles.subtitle, {marginBottom: 40, marginTop:20, color:''}]}>¿No tienes una Cuenta?</Text>
             <TouchableOpacity style={styles.button2}> 
-                <Text style={styles.buttonText}>Registrarse</Text>
+                <Text style={[GlobalStyles.textbutton]}>Registrarse</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.button3}> 
@@ -86,81 +95,23 @@ export default function LoginScreen() {
     );
     };
 
-    //* Estilos 
+    //* Estilos adicionales
     const styles = StyleSheet.create({
-    containerMain: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#f4f6f8',
-    },
-    container: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#f4f6f8',
-    },
-    container2: {
-    flex: 0,
-    justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#f4f6f8',
-    },
-    title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    color: '',
-    marginBottom: 10,
-    },
-    logo:{
-    width: 285, 
-    height: 130, 
-    resizeMode:'container',
-    },
-    subtitle: {
-    fontSize: 16,
-    textAlign: 'center',
-    color: '',
-    marginBottom: 40,
-    marginTop:20,
-    },
-    input: {
-    backgroundColor: '',
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '',
-    marginBottom: 15,
-    fontSize: 16,
-    },
-    button: {
-    backgroundColor: '#28a745',
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 10,
-    },
+
     button2: {
-    backgroundColor:'#007bff',
-    title: '#fff',
-    padding: 5,
-    borderRadius: 8,
-    alignItems: 'center',
-    alignSelf:'center',
+        backgroundColor:'#007bff',
+        title: '#fff',
+        padding: 5,
+        borderRadius: 8,
+        alignItems: 'center',
+        alignSelf:'center'
     },
     button3: {
-    backgroundColor:'#f4f6f8',
-    padding: 5,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop:20,
-    },
-    buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-    },
+        backgroundColor:'#f4f6f8',
+        padding: 5,
+        borderRadius: 8,
+        alignItems: 'center',
+        marginTop:30
+    }
     });
 

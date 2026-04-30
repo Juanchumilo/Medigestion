@@ -2420,7 +2420,7 @@ def api_generar_reporte():
 @token_requerido
 def api_cita_editar():
     datos_recibidos=request.get_json()
-    id=datos_recibidos.get('id_cita')
+    id=datos_recibidos.get('IdCita')
 
 
     if datos_recibidos.get('rol_asignado') == 'pacientes':
