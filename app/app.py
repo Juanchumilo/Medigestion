@@ -141,6 +141,15 @@ def token_requerido(f):
 
 ########################################################    PAGINAS AUTH    ########################################################
 
+@app.route('/api/verificar_token', methods=['GET'])
+@token_requerido
+def check_token(usuario_actual):
+    return jsonify({
+        'status': 'success'
+    }), 200
+
+
+
 #----> Index 
 @app.route('/')
 def index():

@@ -17,21 +17,28 @@ const Tab = createBottomTabNavigator();
 function MisTabs() {
   return (
     <Tab.Navigator screenOptions={{ headerShown: false }}>
-      <Tab.Screen name="Inicio" component={InicioPaciente} />
-      <Tab.Screen name="Medicos" component={ListaMedicos} />
-      <Tab.Screen name="Datos" component={EditarDatos} />
+      <Tab.Screen name='Inicio' component={InicioPaciente} />
+      <Tab.Screen name='Medicos' component={ListaMedicos} />
+      <Tab.Screen name='Datos' component={EditarDatos} />
     </Tab.Navigator>
   );
 }
 
-
 export default function App() {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Login">
-        <Stack.Screen name="Login" component={Login} options={{ headerShown: false }} />
+      <Stack.Navigator initialRouteName='Login'>
+        <Stack.Screen
+          name='Login'
+          component={Login}
+          options={{ headerShown: false }}
+        />
         {/* Cuando el login sea exitoso, navegamos a 'MainApp' */}
-        <Stack.Screen name="MainApp" component={MisTabs} options={{ headerShown: false }} />
+        <Stack.Screen
+          name='MainApp'
+          component={MisTabs}
+          options={{ headerShown: false }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
