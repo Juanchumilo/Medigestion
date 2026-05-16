@@ -9,11 +9,12 @@ import Login from './src/Auth/Login';
 import InicioPaciente from './src/Paciente/InicioPaciente';
 import ListaMedicos from './src/Paciente/ListaMedicos';
 import EditarDatos from './src/Paciente/EditarDatos';
+import ScreenLoading from './src/Auth/ScreenLoading';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// Esta es la barra de abajo
+// Barra de InicioPaciente
 function MisTabs() {
   return (
     <Tab.Navigator screenOptions={{ headerShown: false }}>
@@ -35,8 +36,13 @@ export default function App() {
         />
         {/* Cuando el login sea exitoso, navegamos a 'MainApp' */}
         <Stack.Screen
-          name='MainApp'
+          name='MainPaciente'
           component={MisTabs}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name='ScreenLoading'
+          component={ScreenLoading}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>

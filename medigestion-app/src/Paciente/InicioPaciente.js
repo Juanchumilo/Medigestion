@@ -17,48 +17,13 @@ import BuscadorCitas from '../../components/BuscadorCitas.js';
 import { datosUsuario } from '../../components/datosUsuario.js';
 import { capitalizarNombre } from '../../utils/toUpperCase.js';
 import { GlobalStyles } from '../../assets/theme/globalStyles.js';
+
 // Funcion para verificar el token
 import { verificarToken } from '../../components/token_requerido.js';
 
 export default function InicioPaciente() {
   const [vistaActiva, setVistaActiva] = useState('inicio');
   const perfil = datosUsuario(); // Funcion creada para recibir los datos del Usuario
-  const { autorizado, cargando } = verificarToken();
-  const navigation = useNavigation();
-
-  useEffect(() => {
-    if (!cargando && !autorizado) {
-      Alert.alert(
-        'Sesión Expirada',
-        'No tienes permiso o tu sesión terminó. Por favor inicia sesión de nuevo.',
-        [
-          {
-            text: 'OK',
-            // El replace ocurre ÚNICAMENTE cuando el usuario presiona el botón
-            onPress: () => navigation.replace('Login'),
-          },
-        ],
-        { cancelable: false }, // Evita que cierre la alerta tocando por fuera
-      );
-    }
-  }, [cargando, autorizado, navigation]);
-
-  if (cargando) {
-    return (
-      <View
-        style={[
-          GlobalStyles.container,
-          { justifyContent: 'center', alignItems: 'center' },
-        ]}
-      >
-        <Text style={styles.textoWelcome}>Ingresando...</Text>
-      </View>
-    );
-  }
-
-  if (!autorizado) {
-    return <View style={GlobalStyles.container}></View>;
-  }
 
   const renderizarVista = () => {
     if (vistaActiva === 'crear') {

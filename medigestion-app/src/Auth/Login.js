@@ -47,7 +47,7 @@ export default function LoginScreen({ navigation }) {
         // data.datos es un objeto, asi que lo cambiamos a string
         await AsyncStorage.setItem('datos_usuario', JSON.stringify(data.datos));
 
-        navigation.replace('MainApp');
+        navigation.replace('ScreenLoading');
       } else {
         //* Si manda mal la contraseña o el user no existe (Error 400/401)*
         Alert.alert('Error', data.message || 'Credenciales inválidas');
